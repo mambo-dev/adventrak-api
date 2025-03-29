@@ -1,0 +1,17 @@
+-- +goose Up 
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE trips (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    start_date TIMESTAMP NOT NULL DEFAULT NOW(),
+    start_location GEOGRAPHY(POINT, 4326) NOT NULL,
+    end_location GEOGRAPHY(POINT, 4326) NOT NULL,
+    end_date TIMESTAMP,
+    distance_travelled FLOAT,
+    created_at TIMESTAMP NOT NULL DEFAULT NOW(), 
+    updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+    account_id uuid UNIQUE NOT NULL,
+    FOREIGN KEY (account_id) REFERENCES account(id) ON DELETE CASCADE
+);
+-- +goose Down
+DROP TABLE trips;
