@@ -7,7 +7,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
 	"github.com/joho/godotenv"
-	"github.com/mambo-dev/adventure-log/internal/database"
+	"github.com/mambo-dev/adventrak-backend/internal/database"
 )
 
 type apiConfig struct {
