@@ -8,6 +8,8 @@ package database
 import (
 	"context"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 const createUser = `-- name: CreateUser :one
@@ -35,6 +37,74 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) (User, e
 		arg.Password,
 		arg.UpdatedAt,
 	)
+	var i User
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Username,
+		&i.Password,
+		&i.Email,
+	)
+	return i, err
+}
+
+const deleteUser = `-- name: DeleteUser :exec
+DELETE FROM users
+WHERE id = $1
+`
+
+func (q *Queries) DeleteUser(ctx context.Context, id uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteUser, id)
+	return err
+}
+
+const getUser = `-- name: GetUser :one
+
+SELECT username, email, created_at
+FROM USERS
+WHERE username = $1
+`
+
+type GetUserRow struct {
+	Username  string
+	Email     string
+	CreatedAt time.Time
+}
+
+func (q *Queries) GetUser(ctx context.Context, username string) (GetUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getUser, username)
+	var i GetUserRow
+	err := row.Scan(&i.Username, &i.Email, &i.CreatedAt)
+	return i, err
+}
+
+const updatePassword = `-- name: UpdatePassword :exec
+UPDATE users
+SET password = $1
+WHERE id = $1
+`
+
+func (q *Queries) UpdatePassword(ctx context.Context, password string) error {
+	_, err := q.db.ExecContext(ctx, updatePassword, password)
+	return err
+}
+
+const updateUserDetails = `-- name: UpdateUserDetails :one
+UPDATE users
+SET username = $1, email = $2, updated_at = $3
+WHERE id = $1 
+RETURNING id, created_at, updated_at, username, password, email
+`
+
+type UpdateUserDetailsParams struct {
+	Username  string
+	Email     string
+	UpdatedAt time.Time
+}
+
+func (q *Queries) UpdateUserDetails(ctx context.Context, arg UpdateUserDetailsParams) (User, error) {
+	row := q.db.QueryRowContext(ctx, updateUserDetails, arg.Username, arg.Email, arg.UpdatedAt)
 	var i User
 	err := row.Scan(
 		&i.ID,
