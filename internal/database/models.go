@@ -5,10 +5,61 @@
 package database
 
 import (
+	"database/sql"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type Account struct {
+	ID         uuid.UUID
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	Verified   bool
+	ResetCode  string
+	DisabledAt sql.NullTime
+	UserID     uuid.NullUUID
+}
+
+type RefreshToken struct {
+	ID        uuid.UUID
+	Token     string
+	ExpiresAt time.Time
+	RevokedAt sql.NullTime
+	CreatedAt time.Time
+	UpdatedAt time.Time
+	UserID    uuid.NullUUID
+}
+
+type Trip struct {
+	ID                uuid.UUID
+	StartDate         time.Time
+	StartLocation     interface{}
+	EndLocation       interface{}
+	EndDate           sql.NullTime
+	DistanceTravelled sql.NullFloat64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	AccountID         uuid.UUID
+}
+
+type TripPhoto struct {
+	ID         uuid.UUID
+	TripID     uuid.NullUUID
+	TripStopID uuid.NullUUID
+	PhotoUrl   string
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+}
+
+type TripStop struct {
+	ID           uuid.UUID
+	TripID       uuid.UUID
+	LocationName string
+	LocationTag  interface{}
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
 
 type User struct {
 	ID        uuid.UUID
