@@ -31,6 +31,12 @@ func main() {
 		log.Fatal("FATAL: PORT environment variable is not set")
 	}
 
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	if jwtSecret == "" {
+		log.Fatal("FATAL: JWT_SECRET environment variable is not set")
+	}
+
 	workEnv := os.Getenv("WORKENV")
 
 	if workEnv == "" {

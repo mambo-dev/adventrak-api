@@ -46,9 +46,9 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 	}
 
 	user, err := cfg.db.CreateUser(context.Background(), database.CreateUserParams{
-		Username: params.Username,
-		Password: passwordHash,
-		Email:    params.Email,
+		Username:     params.Username,
+		PasswordHash: passwordHash,
+		Email:        params.Email,
 	})
 
 	if err != nil {

@@ -1,5 +1,4 @@
 -- +goose Up 
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE trips (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

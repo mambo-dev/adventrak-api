@@ -62,10 +62,10 @@ type TripStop struct {
 }
 
 type User struct {
-	ID        uuid.UUID
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	Username  string
-	Password  string
-	Email     string
+	ID           uuid.UUID
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+	Username     string
+	PasswordHash string
+	Email        string
 }
