@@ -15,7 +15,8 @@ import (
 )
 
 type apiConfig struct {
-	db *database.Queries
+	db        *database.Queries
+	jwtSecret string
 }
 
 func main() {
@@ -57,6 +58,7 @@ func main() {
 	}
 
 	apiCfg.db = database.New(db)
+	apiCfg.jwtSecret = jwtSecret
 
 	router := chi.NewRouter()
 	allowedOrigins := []string{"http://*"}

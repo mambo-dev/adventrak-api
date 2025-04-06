@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/auth"
 )
 
@@ -41,21 +40,14 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := auth.MakeJWT(user.ID, jwtSecret, time.Hour)
+	accessToken, err := auth.MakeJWT(user.ID, cfg.jwtSecret, time.Hour)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to create access token", err, false)
 		return
 	}
 
-	type LoginResponse struct {
-		ID           uuid.UUID
-		Username     string
-		AccessToken  string
-		RefreshToken string
-	}
-
-	respondWithJSON(w, http.StatusAccepted, LoginResponse{
+	respondWithJSON(w, http.StatusAccepted, UserAuthResponse{
 		ID:           user.ID,
 		Username:     user.Username,
 		AccessToken:  accessToken,
