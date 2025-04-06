@@ -79,6 +79,7 @@ func main() {
 	if apiCfg.db != nil {
 		log.Println("Db is active")
 		v1Router.Post("/users", apiCfg.handlerUsersCreate)
+		v1Router.Post("/users/login", apiCfg.handlerLogin)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)
