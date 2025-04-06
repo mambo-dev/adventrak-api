@@ -20,7 +20,7 @@ type apiConfig struct {
 }
 
 func main() {
-	cleanUpOldTimers()
+	go cleanUpOldTimers()
 
 	err := godotenv.Load(".env")
 
@@ -82,8 +82,8 @@ func main() {
 
 	if apiCfg.db != nil {
 		log.Println("Db is active")
-		v1Router.Post("/users", apiCfg.handlerUsersCreate)
-		v1Router.Post("/users/login", apiCfg.handlerLogin)
+		v1Router.Post("/auth/signup", apiCfg.handlerUsersCreate)
+		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)

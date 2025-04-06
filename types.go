@@ -7,9 +7,9 @@ import (
 )
 
 type UserAuthResponse struct {
-	ID           uuid.UUID
-	Username     string
-	AccessToken  string
-	RefreshToken string
-	CreatedAt    time.Time
+	ID           uuid.UUID `json:"id"`
+	Username     string    `json:"username"`
+	AccessToken  string    `json:"accessToken"`
+	RefreshToken string    `json:"refreshToken"`
+	CreatedAt    time.Time `json:"createdAt"`
 }
