@@ -38,6 +38,7 @@ func respondWithError(w http.ResponseWriter, code int, msg string, err error, mu
 }
 func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 	w.Header().Set("Content-Type", "application/json")
+
 	dat, err := json.Marshal(payload)
 	if err != nil {
 		log.Printf("Error marshalling JSON: %s", err)
@@ -45,7 +46,10 @@ func respondWithJSON(w http.ResponseWriter, code int, payload interface{}) {
 		return
 	}
 	w.WriteHeader(code)
-	w.Write(dat)
+
+	if _, err := w.Write(dat); err != nil {
+		log.Printf("Failed to write response: %v", err)
+	}
 }
 
 func generateValidationError(err error) map[string]string {

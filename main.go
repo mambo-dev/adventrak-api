@@ -15,10 +15,13 @@ import (
 )
 
 type apiConfig struct {
-	db *database.Queries
+	db        *database.Queries
+	jwtSecret string
 }
 
 func main() {
+	go cleanUpOldTimers()
+
 	err := godotenv.Load(".env")
 
 	if err != nil {
@@ -29,6 +32,12 @@ func main() {
 
 	if port == "" {
 		log.Fatal("FATAL: PORT environment variable is not set")
+	}
+
+	jwtSecret := os.Getenv("JWT_SECRET")
+
+	if jwtSecret == "" {
+		log.Fatal("FATAL: JWT_SECRET environment variable is not set")
 	}
 
 	workEnv := os.Getenv("WORKENV")
@@ -51,6 +60,7 @@ func main() {
 	}
 
 	apiCfg.db = database.New(db)
+	apiCfg.jwtSecret = jwtSecret
 
 	router := chi.NewRouter()
 	allowedOrigins := []string{"http://*"}
@@ -72,7 +82,8 @@ func main() {
 
 	if apiCfg.db != nil {
 		log.Println("Db is active")
-		v1Router.Post("/users", apiCfg.handlerUsersCreate)
+		v1Router.Post("/auth/signup", apiCfg.handlerUsersCreate)
+		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)
