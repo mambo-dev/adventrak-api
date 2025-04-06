@@ -1,15 +1,13 @@
 package main
 
-import "net/http"
+// func secureHeader(next http.Handler) http.Handler {
 
-func secureHeader(next http.Handler) http.Handler {
+// 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+// 		w.Header().Set("x-content-type-options", "nosniff")
+// 		w.Header().Set("x-frame-options", "SAMEORIGIN")
+// 		w.Header().Set("Referrer-policy", "no-referrer")
 
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("x-content-type-options", "nosniff")
-		w.Header().Set("x-frame-options", "SAMEORIGIN")
-		w.Header().Set("Referrer-policy", "no-referrer")
+// 		next.ServeHTTP(w, r)
 
-		next.ServeHTTP(w, r)
-
-	})
-}
+// 	})
+// }
