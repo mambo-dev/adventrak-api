@@ -19,11 +19,18 @@ func (cfg *apiConfig) handlerUsersCreate(w http.ResponseWriter, r *http.Request)
 		Username string `json:"username" validate:"required,min=5,max=20"`
 	}
 
+	err := rateLimit(w, r, "signup")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
 	decoder := json.NewDecoder(r.Body)
 
 	params := parameters{}
 
-	err := decoder.Decode(&params)
+	err = decoder.Decode(&params)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to decode parameters", err, false)

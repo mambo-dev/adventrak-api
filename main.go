@@ -20,6 +20,8 @@ type apiConfig struct {
 }
 
 func main() {
+	cleanUpOldTimers()
+
 	err := godotenv.Load(".env")
 
 	if err != nil {

@@ -11,3 +11,7 @@ RETURNING *;
 UPDATE refresh_token
 SET revoked_at = NOW()
 WHERE token = $1;
+
+-- name: GetRefreshToken :one 
+SELECT * FROM refresh_token
+WHERE user_id = $1;
