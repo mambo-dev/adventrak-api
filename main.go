@@ -82,8 +82,11 @@ func main() {
 
 	if apiCfg.db != nil {
 		log.Println("Db is active")
-		v1Router.Post("/auth/signup", apiCfg.handlerUsersCreate)
+		v1Router.Post("/auth/signup", apiCfg.handlerSignup)
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
+		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
+		v1Router.Post("/auth/vefify-email", apiCfg.handlerLogin)
+		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)

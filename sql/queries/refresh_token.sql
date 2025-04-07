@@ -14,4 +14,4 @@ WHERE token = $1;
 
 -- name: GetRefreshToken :one 
 SELECT * FROM refresh_token
-WHERE user_id = $1;
+WHERE token = $1;
