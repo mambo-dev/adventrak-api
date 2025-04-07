@@ -315,7 +315,13 @@ func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusInternalServerError, "Unable to send verification email", err, false)
 		return
 	}
-
-	respondWithJSON(w, http.StatusOK, nil)
+	type ApiResponse struct {
+		Status string      `json:"status"`
+		Data   interface{} `json:"data"`
+	}
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
+	})
 
 }

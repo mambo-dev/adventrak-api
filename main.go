@@ -98,7 +98,7 @@ func main() {
 	}
 
 	if workEnv == "dev" {
-		v1Router.Delete("/admin/reset-db", apiCfg.handlerLogin)
+		v1Router.Delete("/admin/reset", apiCfg.resetDatabase)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)
