@@ -93,7 +93,7 @@ func main() {
 		v1Router.Post("/auth/signup", apiCfg.handlerSignup)
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
-		v1Router.Post("/auth/vefify-email", apiCfg.handlerLogin)
+		v1Router.Post("/auth/vefify-email", apiCfg.handlerVerifyEmail)
 		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
 	}
 

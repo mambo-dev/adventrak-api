@@ -1,4 +1,4 @@
-package main
+package mailer
 
 import (
 	"log"
@@ -7,21 +7,12 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-type EmailDetails struct {
-	FromEmail   string
-	FromName    string
-	ToEmail     string
-	ToName      string
-	Subject     string
-	HtmlContent string
-}
-
-func (cfg apiConfig) sendEmail(emailDetails EmailDetails) error {
+func SendEmail(emailDetails EmailDetails, apiKey string) error {
 	from := mail.NewEmail(emailDetails.FromName, emailDetails.FromEmail)
 	to := mail.NewEmail(emailDetails.ToName, emailDetails.ToEmail)
 	htmlContent := emailDetails.HtmlContent
 	message := mail.NewSingleEmail(from, emailDetails.Subject, to, "", htmlContent)
-	client := sendgrid.NewSendClient(cfg.sendGridApiKey)
+	client := sendgrid.NewSendClient(apiKey)
 	response, err := client.Send(message)
 	if err != nil {
 		return err

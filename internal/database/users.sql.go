@@ -63,8 +63,13 @@ const getUser = `-- name: GetUser :one
 
 SELECT id, username, email,password_hash, created_at
 FROM USERS
-WHERE username = $1
+WHERE username = $1 OR id = $2
 `
+
+type GetUserParams struct {
+	Username string
+	ID       uuid.UUID
+}
 
 type GetUserRow struct {
 	ID           uuid.UUID
@@ -74,8 +79,8 @@ type GetUserRow struct {
 	CreatedAt    time.Time
 }
 
-func (q *Queries) GetUser(ctx context.Context, username string) (GetUserRow, error) {
-	row := q.db.QueryRowContext(ctx, getUser, username)
+func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (GetUserRow, error) {
+	row := q.db.QueryRowContext(ctx, getUser, arg.Username, arg.ID)
 	var i GetUserRow
 	err := row.Scan(
 		&i.ID,
