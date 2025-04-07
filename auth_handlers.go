@@ -318,7 +318,7 @@ func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) 
 		ToEmail:     user.Email,
 		ToName:      user.Username,
 		Subject:     "Verify your Email",
-		HtmlContent: "<strong>Your email is not verified</strong>",
+		HtmlContent: mailer.VerifyEmail,
 	}, cfg.sendGridApiKey)
 
 	if err != nil {
