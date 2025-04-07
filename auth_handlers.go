@@ -94,12 +94,15 @@ func (cfg *apiConfig) handlerSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, UserAuthResponse{
-		Username:     user.Username,
-		CreatedAt:    user.CreatedAt,
-		AccessToken:  accessToken,
-		ID:           user.ID,
-		RefreshToken: token.Token,
+	respondWithJSON(w, http.StatusCreated, ApiResponse{
+		Status: "success",
+		Data: UserAuthResponse{
+			Username:     user.Username,
+			CreatedAt:    user.CreatedAt,
+			AccessToken:  accessToken,
+			ID:           user.ID,
+			RefreshToken: token.Token,
+		},
 	})
 
 }
@@ -181,13 +184,17 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusAccepted, UserAuthResponse{
-		ID:           user.ID,
-		Username:     user.Username,
-		AccessToken:  accessToken,
-		RefreshToken: token.Token,
-		CreatedAt:    user.CreatedAt,
-	})
+	respondWithJSON(w, http.StatusAccepted, ApiResponse{
+		Status: "success",
+		Data: UserAuthResponse{
+			ID:           user.ID,
+			Username:     user.Username,
+			AccessToken:  accessToken,
+			RefreshToken: token.Token,
+			CreatedAt:    user.CreatedAt,
+		},
+	},
+	)
 
 }
 
@@ -264,9 +271,12 @@ func (cfg apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		RefreshToken string `json:"refreshToken"`
 	}
 
-	respondWithJSON(w, http.StatusAccepted, RefreshResponse{
-		AccessToken:  accessToken,
-		RefreshToken: token.Token,
+	respondWithJSON(w, http.StatusAccepted, ApiResponse{
+		Status: "success",
+		Data: RefreshResponse{
+			AccessToken:  accessToken,
+			RefreshToken: token.Token,
+		},
 	})
 
 }
@@ -315,10 +325,7 @@ func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusInternalServerError, "Unable to send verification email", err, false)
 		return
 	}
-	type ApiResponse struct {
-		Status string      `json:"status"`
-		Data   interface{} `json:"data"`
-	}
+
 	respondWithJSON(w, http.StatusOK, ApiResponse{
 		Status: "success",
 		Data:   nil,
