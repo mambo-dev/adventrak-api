@@ -102,9 +102,9 @@ func main() {
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
 		v1Router.Get("/auth/send-verification", apiCfg.handlerSendVerification)
-		v1Router.Get("/auth/verify-email", apiCfg.handlerVerifyEmail)
-		v1Router.Get("/auth/send-reset-request", apiCfg.handlerResetRequest)
-		v1Router.Get("/auth/reset-password", apiCfg.handlerResetPassword)
+		v1Router.Put("/auth/verify-email", apiCfg.handlerVerifyEmail)
+		v1Router.Get("/auth/request-password-reset", apiCfg.handlerResetRequest)
+		v1Router.Put("/auth/reset-password", apiCfg.handlerResetPassword)
 		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
 	}
 
