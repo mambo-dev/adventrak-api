@@ -93,8 +93,12 @@ func main() {
 		v1Router.Post("/auth/signup", apiCfg.handlerSignup)
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
-		v1Router.Post("/auth/vefify-email", apiCfg.handlerVerifyEmail)
+		v1Router.Get("/auth/verify-email", apiCfg.handlerVerifyEmail)
 		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
+	}
+
+	if workEnv == "dev" {
+		v1Router.Delete("/admin/reset-db", apiCfg.handlerLogin)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)

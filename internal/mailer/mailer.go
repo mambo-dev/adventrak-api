@@ -18,7 +18,7 @@ func SendEmail(emailDetails EmailDetails, apiKey string) error {
 		return err
 	}
 
-	log.Printf("Email sent succesfully received: %v code, with %v and headers %v", response.StatusCode, response.Body, response.Headers)
+	log.Printf("Email sent succesfully received: %v code, with %v ", response.StatusCode, response.Body)
 	return nil
 
 }

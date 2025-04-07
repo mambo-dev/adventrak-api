@@ -289,7 +289,7 @@ func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) 
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unable to validate JWT", err, false)
+		respondWithError(w, http.StatusUnauthorized, "Invalid Token. Please login again.", err, false)
 		return
 	}
 
