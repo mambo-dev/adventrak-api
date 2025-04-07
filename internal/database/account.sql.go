@@ -7,6 +7,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -34,9 +35,66 @@ func (q *Queries) DisableAccount(ctx context.Context, userID uuid.NullUUID) erro
 	return err
 }
 
+const getUserAccount = `-- name: GetUserAccount :one
+SELECT id, created_at, updated_at, verified, reset_code, disabled_at, user_id, verification_code, verification_expires_at, reset_code_expires_at FROM account
+WHERE user_id = $1
+`
+
+func (q *Queries) GetUserAccount(ctx context.Context, userID uuid.NullUUID) (Account, error) {
+	row := q.db.QueryRowContext(ctx, getUserAccount, userID)
+	var i Account
+	err := row.Scan(
+		&i.ID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.Verified,
+		&i.ResetCode,
+		&i.DisabledAt,
+		&i.UserID,
+		&i.VerificationCode,
+		&i.VerificationExpiresAt,
+		&i.ResetCodeExpiresAt,
+	)
+	return i, err
+}
+
+const setResetCode = `-- name: SetResetCode :exec
+UPDATE account 
+SET reset_code = $1, reset_code_expires_at = $2
+WHERE user_id  = $3
+`
+
+type SetResetCodeParams struct {
+	ResetCode          sql.NullString
+	ResetCodeExpiresAt sql.NullTime
+	UserID             uuid.NullUUID
+}
+
+func (q *Queries) SetResetCode(ctx context.Context, arg SetResetCodeParams) error {
+	_, err := q.db.ExecContext(ctx, setResetCode, arg.ResetCode, arg.ResetCodeExpiresAt, arg.UserID)
+	return err
+}
+
+const setVerificationCode = `-- name: SetVerificationCode :exec
+UPDATE account 
+SET verification_code = $1, verification_expires_at = $2
+WHERE user_id = $3
+`
+
+type SetVerificationCodeParams struct {
+	VerificationCode      string
+	VerificationExpiresAt sql.NullTime
+	UserID                uuid.NullUUID
+}
+
+func (q *Queries) SetVerificationCode(ctx context.Context, arg SetVerificationCodeParams) error {
+	_, err := q.db.ExecContext(ctx, setVerificationCode, arg.VerificationCode, arg.VerificationExpiresAt, arg.UserID)
+	return err
+}
+
 const verifyAccount = `-- name: VerifyAccount :exec
 UPDATE account 
-SET verified = true
+SET verified = true, verification_code = NULL, verification_expires_at =  NOW()
 WHERE user_id = $1
 `
 

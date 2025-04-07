@@ -72,12 +72,13 @@ const getUser = `-- name: GetUser :one
 
 SELECT id, username, email,password_hash, created_at
 FROM USERS
-WHERE username = $1 OR id = $2
+WHERE username = $1 OR id = $2 OR email = $3
 `
 
 type GetUserParams struct {
 	Username string
 	ID       uuid.UUID
+	Email    string
 }
 
 type GetUserRow struct {
@@ -89,7 +90,7 @@ type GetUserRow struct {
 }
 
 func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (GetUserRow, error) {
-	row := q.db.QueryRowContext(ctx, getUser, arg.Username, arg.ID)
+	row := q.db.QueryRowContext(ctx, getUser, arg.Username, arg.ID, arg.Email)
 	var i GetUserRow
 	err := row.Scan(
 		&i.ID,
@@ -104,11 +105,16 @@ func (q *Queries) GetUser(ctx context.Context, arg GetUserParams) (GetUserRow, e
 const updatePassword = `-- name: UpdatePassword :exec
 UPDATE users
 SET password_hash = $1
-WHERE id = $1
+WHERE id = $2
 `
 
-func (q *Queries) UpdatePassword(ctx context.Context, passwordHash string) error {
-	_, err := q.db.ExecContext(ctx, updatePassword, passwordHash)
+type UpdatePasswordParams struct {
+	PasswordHash string
+	ID           uuid.UUID
+}
+
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
+	_, err := q.db.ExecContext(ctx, updatePassword, arg.PasswordHash, arg.ID)
 	return err
 }
 

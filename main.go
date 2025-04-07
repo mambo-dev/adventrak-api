@@ -18,6 +18,7 @@ type apiConfig struct {
 	db             *database.Queries
 	jwtSecret      string
 	sendGridApiKey string
+	frontEndURL    string
 }
 
 func main() {
@@ -53,6 +54,12 @@ func main() {
 		log.Fatal("FATAL: sendgrid api  not set")
 	}
 
+	frontEndURL := os.Getenv("BASE_FRONTEND_URL")
+
+	if frontEndURL == "" {
+		log.Fatal("FATAL: frontend url not set")
+	}
+
 	apiCfg := apiConfig{}
 
 	dbURL := os.Getenv("DATABASE_URL")
@@ -69,6 +76,7 @@ func main() {
 	apiCfg.db = database.New(db)
 	apiCfg.jwtSecret = jwtSecret
 	apiCfg.sendGridApiKey = sendGridApiKey
+	apiCfg.frontEndURL = frontEndURL
 
 	router := chi.NewRouter()
 	allowedOrigins := []string{"http://*"}
@@ -93,7 +101,10 @@ func main() {
 		v1Router.Post("/auth/signup", apiCfg.handlerSignup)
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
-		v1Router.Get("/auth/verify-email", apiCfg.handlerVerifyEmail)
+		v1Router.Get("/auth/send-verification", apiCfg.handlerSendVerification)
+		v1Router.Put("/auth/verify-email", apiCfg.handlerVerifyEmail)
+		v1Router.Get("/auth/request-password-reset", apiCfg.handlerResetRequest)
+		v1Router.Put("/auth/reset-password", apiCfg.handlerResetPassword)
 		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
 	}
 

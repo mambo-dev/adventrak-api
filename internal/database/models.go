@@ -12,13 +12,16 @@ import (
 )
 
 type Account struct {
-	ID         uuid.UUID
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	Verified   bool
-	ResetCode  string
-	DisabledAt sql.NullTime
-	UserID     uuid.NullUUID
+	ID                    uuid.UUID
+	CreatedAt             time.Time
+	UpdatedAt             time.Time
+	Verified              bool
+	ResetCode             sql.NullString
+	DisabledAt            sql.NullTime
+	UserID                uuid.NullUUID
+	VerificationCode      string
+	VerificationExpiresAt sql.NullTime
+	ResetCodeExpiresAt    sql.NullTime
 }
 
 type RefreshToken struct {

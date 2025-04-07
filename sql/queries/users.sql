@@ -12,7 +12,7 @@ RETURNING *;
 
 SELECT id, username, email,password_hash, created_at
 FROM USERS
-WHERE username = $1 OR id = $2;
+WHERE username = $1 OR id = $2 OR email = $3;
 
 -- name: UpdateUserDetails :one
 UPDATE users
@@ -23,7 +23,7 @@ RETURNING *;
 -- name: UpdatePassword :exec
 UPDATE users
 SET password_hash = $1
-WHERE id = $1;
+WHERE id = $2;
 
 -- name: DeleteUser :exec
 DELETE FROM users
