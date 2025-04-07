@@ -15,8 +15,9 @@ import (
 )
 
 type apiConfig struct {
-	db        *database.Queries
-	jwtSecret string
+	db             *database.Queries
+	jwtSecret      string
+	sendGridApiKey string
 }
 
 func main() {
@@ -46,6 +47,12 @@ func main() {
 		log.Fatal("FATAL: working environment variable is not set")
 	}
 
+	sendGridApiKey := os.Getenv("SENDGRID_API_KEY")
+
+	if sendGridApiKey == "" {
+		log.Fatal("FATAL: sendgrid api  not set")
+	}
+
 	apiCfg := apiConfig{}
 
 	dbURL := os.Getenv("DATABASE_URL")
@@ -61,6 +68,7 @@ func main() {
 
 	apiCfg.db = database.New(db)
 	apiCfg.jwtSecret = jwtSecret
+	apiCfg.sendGridApiKey = sendGridApiKey
 
 	router := chi.NewRouter()
 	allowedOrigins := []string{"http://*"}
@@ -85,8 +93,12 @@ func main() {
 		v1Router.Post("/auth/signup", apiCfg.handlerSignup)
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
-		v1Router.Post("/auth/vefify-email", apiCfg.handlerLogin)
+		v1Router.Get("/auth/verify-email", apiCfg.handlerVerifyEmail)
 		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
+	}
+
+	if workEnv == "dev" {
+		v1Router.Delete("/admin/reset", apiCfg.resetDatabase)
 	}
 
 	v1Router.Get("/healthz", handlerReadiness)

@@ -13,3 +13,8 @@ type UserAuthResponse struct {
 	RefreshToken string    `json:"refreshToken"`
 	CreatedAt    time.Time `json:"createdAt"`
 }
+
+type ApiResponse struct {
+	Status string      `json:"status"`
+	Data   interface{} `json:"data"`
+}

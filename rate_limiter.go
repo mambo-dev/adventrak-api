@@ -16,9 +16,10 @@ type Limiter struct {
 }
 
 var (
-	LoginLimiter  = make(map[string]*Limiter, 0)
-	SignUpLimiter = make(map[string]*Limiter, 0)
-	mu            sync.Mutex
+	LoginLimiter   = make(map[string]*Limiter, 0)
+	SignUpLimiter  = make(map[string]*Limiter, 0)
+	generalLimiter = make(map[string]*Limiter, 0)
+	mu             sync.Mutex
 )
 
 func getLimiter(ip string, route string) *rate.Limiter {
@@ -32,6 +33,8 @@ func getLimiter(ip string, route string) *rate.Limiter {
 		limiters = LoginLimiter
 	case "signup":
 		limiters = SignUpLimiter
+	case "general":
+		limiters = generalLimiter
 	}
 
 	if c, exists := limiters[ip]; exists {

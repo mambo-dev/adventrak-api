@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/auth"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
+	"github.com/mambo-dev/adventrak-backend/internal/mailer"
 )
 
 func (cfg *apiConfig) handlerSignup(w http.ResponseWriter, r *http.Request) {
@@ -93,12 +94,15 @@ func (cfg *apiConfig) handlerSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusCreated, UserAuthResponse{
-		Username:     user.Username,
-		CreatedAt:    user.CreatedAt,
-		AccessToken:  accessToken,
-		ID:           user.ID,
-		RefreshToken: token.Token,
+	respondWithJSON(w, http.StatusCreated, ApiResponse{
+		Status: "success",
+		Data: UserAuthResponse{
+			Username:     user.Username,
+			CreatedAt:    user.CreatedAt,
+			AccessToken:  accessToken,
+			ID:           user.ID,
+			RefreshToken: token.Token,
+		},
 	})
 
 }
@@ -136,7 +140,9 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := cfg.db.GetUser(context.Background(), params.Username)
+	user, err := cfg.db.GetUser(context.Background(), database.GetUserParams{
+		Username: params.Username,
+	})
 
 	if err != nil {
 		respondWithError(w, http.StatusUnauthorized, "Invalid username or password", err, false)
@@ -178,13 +184,17 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respondWithJSON(w, http.StatusAccepted, UserAuthResponse{
-		ID:           user.ID,
-		Username:     user.Username,
-		AccessToken:  accessToken,
-		RefreshToken: token.Token,
-		CreatedAt:    user.CreatedAt,
-	})
+	respondWithJSON(w, http.StatusAccepted, ApiResponse{
+		Status: "success",
+		Data: UserAuthResponse{
+			ID:           user.ID,
+			Username:     user.Username,
+			AccessToken:  accessToken,
+			RefreshToken: token.Token,
+			CreatedAt:    user.CreatedAt,
+		},
+	},
+	)
 
 }
 
@@ -261,9 +271,64 @@ func (cfg apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		RefreshToken string `json:"refreshToken"`
 	}
 
-	respondWithJSON(w, http.StatusAccepted, RefreshResponse{
-		AccessToken:  accessToken,
-		RefreshToken: token.Token,
+	respondWithJSON(w, http.StatusAccepted, ApiResponse{
+		Status: "success",
+		Data: RefreshResponse{
+			AccessToken:  accessToken,
+			RefreshToken: token.Token,
+		},
+	})
+
+}
+
+func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) {
+
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+	token, err := auth.GetBearerToken(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Failed to get bearer token", err, false)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid Token. Please login again.", err, false)
+		return
+	}
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	err = mailer.SendEmail(mailer.EmailDetails{
+		FromEmail:   mailer.SystemEmails["system"].Email,
+		FromName:    mailer.SystemEmails["system"].Name,
+		ToEmail:     user.Email,
+		ToName:      user.Username,
+		Subject:     "Verify your Email",
+		HtmlContent: mailer.VerifyEmail,
+	}, cfg.sendGridApiKey)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Unable to send verification email", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
 	})
 
 }
