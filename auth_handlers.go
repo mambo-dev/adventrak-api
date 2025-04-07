@@ -174,7 +174,7 @@ func (cfg apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusInternalServerError, "Failed to create refresh token", err, false)
+		respondWithError(w, http.StatusInternalServerError, "Failed to save refresh token", err, false)
 		return
 	}
 
