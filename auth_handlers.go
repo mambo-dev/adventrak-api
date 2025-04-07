@@ -267,3 +267,6 @@ func (cfg apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 	})
 
 }
+
+func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) {
+}

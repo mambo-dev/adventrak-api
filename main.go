@@ -15,8 +15,9 @@ import (
 )
 
 type apiConfig struct {
-	db        *database.Queries
-	jwtSecret string
+	db             *database.Queries
+	jwtSecret      string
+	sendGridApiKey string
 }
 
 func main() {
@@ -46,6 +47,12 @@ func main() {
 		log.Fatal("FATAL: working environment variable is not set")
 	}
 
+	sendGridApiKey := os.Getenv("SENDGRID_API_KEY")
+
+	if sendGridApiKey == "" {
+		log.Fatal("FATAL: sendgrid api  not set")
+	}
+
 	apiCfg := apiConfig{}
 
 	dbURL := os.Getenv("DATABASE_URL")
@@ -61,6 +68,7 @@ func main() {
 
 	apiCfg.db = database.New(db)
 	apiCfg.jwtSecret = jwtSecret
+	apiCfg.sendGridApiKey = sendGridApiKey
 
 	router := chi.NewRouter()
 	allowedOrigins := []string{"http://*"}
