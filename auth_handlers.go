@@ -644,3 +644,37 @@ func (cfg apiConfig) handlerResetPassword(w http.ResponseWriter, r *http.Request
 	})
 
 }
+
+func (cfg apiConfig) handlerLogout(w http.ResponseWriter, r *http.Request) {
+	token, err := auth.GetBearerToken(r.Header)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Failed to get bearer token", err, false)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "Invalid Token. You are already logged out", err, false)
+		return
+	}
+
+	err = cfg.db.RevokeRefreshToken(r.Context(), database.RevokeRefreshTokenParams{
+		UserID: uuid.NullUUID{
+			UUID:  userID,
+			Valid: true,
+		},
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No valid token for this user found.", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
+	})
+
+}

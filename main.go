@@ -105,7 +105,7 @@ func main() {
 		v1Router.Put("/auth/verify-email", apiCfg.handlerVerifyEmail)
 		v1Router.Get("/auth/request-password-reset", apiCfg.handlerResetRequest)
 		v1Router.Put("/auth/reset-password", apiCfg.handlerResetPassword)
-		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
+		v1Router.Post("/auth/logout", apiCfg.handlerLogout)
 	}
 
 	if workEnv == "dev" {
