@@ -43,7 +43,7 @@ type Trip struct {
 	DistanceTravelled sql.NullFloat64
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
-	AccountID         uuid.UUID
+	UserID            uuid.UUID
 }
 
 type TripPhoto struct {
