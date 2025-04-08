@@ -646,6 +646,22 @@ func (cfg apiConfig) handlerResetPassword(w http.ResponseWriter, r *http.Request
 }
 
 func (cfg apiConfig) handlerLogout(w http.ResponseWriter, r *http.Request) {
+
+	type Params struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+
+	params := &Params{}
+
+	decoder := json.NewDecoder(r.Body)
+
+	err := decoder.Decode(params)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to get refresh token from body", err, false)
+		return
+	}
+
 	token, err := auth.GetBearerToken(r.Header)
 
 	if err != nil {
@@ -656,7 +672,7 @@ func (cfg apiConfig) handlerLogout(w http.ResponseWriter, r *http.Request) {
 	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
 
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid Token. You are already logged out", err, false)
+		respondWithError(w, http.StatusForbidden, "Invalid Token. You are already logged out", err, false)
 		return
 	}
 
@@ -665,6 +681,7 @@ func (cfg apiConfig) handlerLogout(w http.ResponseWriter, r *http.Request) {
 			UUID:  userID,
 			Valid: true,
 		},
+		Token: params.RefreshToken,
 	})
 
 	if err != nil {
