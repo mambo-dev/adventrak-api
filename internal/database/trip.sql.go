@@ -140,13 +140,13 @@ func (q *Queries) GetTrip(ctx context.Context, arg GetTripParams) (GetTripRow, e
 }
 
 const getTripDistance = `-- name: GetTripDistance :one
-SELECT ST_Distance(start_location, end_location) AS distance 
+SELECT ST_Distance(start_location, end_location)::FLOAT8 AS distance 
 FROM trips WHERE id = $1
 `
 
-func (q *Queries) GetTripDistance(ctx context.Context, id uuid.UUID) (interface{}, error) {
+func (q *Queries) GetTripDistance(ctx context.Context, id uuid.UUID) (float64, error) {
 	row := q.db.QueryRowContext(ctx, getTripDistance, id)
-	var distance interface{}
+	var distance float64
 	err := row.Scan(&distance)
 	return distance, err
 }

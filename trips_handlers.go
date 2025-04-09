@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -358,16 +360,27 @@ func (cfg apiConfig) handlerMarkTripComplete(w http.ResponseWriter, r *http.Requ
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Failed to return users trips", err, false)
+		respondWithError(w, http.StatusNotFound, "Failed to compelete trip", err, false)
 		return
 	}
+
+	distanceTravelled, err := cfg.db.GetTripDistance(r.Context(), tripUUID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to get distance travelled", err, true)
+		return
+	}
+
+	log.Println(math.Round(distanceTravelled))
 
 	respondWithJSON(w, http.StatusOK, ApiResponse{
 		Status: "success",
 		Data: struct {
-			TripID uuid.UUID `json:"tripID"`
+			TripID            uuid.UUID `json:"tripID"`
+			DistanceTravelled float64   `json:"distanceTravelled"`
 		}{
-			TripID: tripID,
+			TripID:            tripID,
+			DistanceTravelled: math.Round(distanceTravelled),
 		},
 	})
 }

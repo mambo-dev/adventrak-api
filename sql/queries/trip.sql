@@ -79,7 +79,7 @@ WHERE user_id = $1 AND id = $2;
 
 
 -- name: GetTripDistance :one
-SELECT ST_Distance(start_location, end_location) AS distance 
+SELECT ST_Distance(start_location, end_location)::FLOAT8 AS distance 
 FROM trips WHERE id = $1;
 
 -- name: MarkTripEnd :one 
