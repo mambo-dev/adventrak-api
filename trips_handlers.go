@@ -163,6 +163,11 @@ type TripDetails struct {
 	TripTitle     string     `json:"tripTitle" validate:"required"`
 }
 
+type EndTrip struct {
+	EndDate     *time.Time `json:"endDate,omitempty"`
+	EndLocation Location   `json:"endLocation" validate:"required"`
+}
+
 func formatPoint(loc Location) string {
 	return fmt.Sprintf("SRID=4326;POINT(%f %f)", loc.Lng, loc.Lat)
 }
@@ -226,7 +231,7 @@ func (cfg apiConfig) handlerCreateTrip(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg apiConfig) updateTripDetails(w http.ResponseWriter, r *http.Request) {
+func (cfg apiConfig) handlerUpdateTripDetails(w http.ResponseWriter, r *http.Request) {
 	err := rateLimit(w, r, "general")
 
 	if err != nil {
@@ -277,6 +282,151 @@ func (cfg apiConfig) updateTripDetails(w http.ResponseWriter, r *http.Request) {
 		UserID:            user.ID,
 		ID:                tripUUID,
 		StartLocationName: params.StartLocation.Name,
+		UpdatedAt:         time.Now(),
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to return users trips", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data: struct {
+			TripID uuid.UUID `json:"tripID"`
+		}{
+			TripID: tripID,
+		},
+	})
+}
+
+func (cfg apiConfig) handlerMarkTripComplete(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	paramID := chi.URLParam(r, "tripID")
+
+	tripUUID, err := uuid.Parse(paramID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
+		return
+	}
+
+	params := &EndTrip{}
+
+	if err = json.NewDecoder(r.Body).Decode(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
+		return
+	}
+
+	if err := validator.New().Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to validate user input", err, true)
+		return
+	}
+
+	var endDate sql.NullTime
+	if params.EndDate != nil {
+		endDate = sql.NullTime{Time: *params.EndDate, Valid: true}
+	}
+
+	tripID, err := cfg.db.MarkTripEnd(r.Context(), database.MarkTripEndParams{
+		EndDate:     endDate,
+		EndLocation: formatPoint(params.EndLocation),
+		EndLocationName: sql.NullString{
+			String: params.EndLocation.Name,
+			Valid:  true,
+		},
+		UserID:    user.ID,
+		ID:        tripUUID,
+		UpdatedAt: time.Now(),
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to return users trips", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data: struct {
+			TripID uuid.UUID `json:"tripID"`
+		}{
+			TripID: tripID,
+		},
+	})
+}
+
+func (cfg apiConfig) handlerDeleteTrip(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	paramID := chi.URLParam(r, "tripID")
+
+	tripUUID, err := uuid.Parse(paramID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
+		return
+	}
+
+	params := &EndTrip{}
+
+	if err = json.NewDecoder(r.Body).Decode(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
+		return
+	}
+
+	if err := validator.New().Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to validate user input", err, true)
+		return
+	}
+
+	var endDate sql.NullTime
+	if params.EndDate != nil {
+		endDate = sql.NullTime{Time: *params.EndDate, Valid: true}
+	}
+
+	tripID, err := cfg.db.MarkTripEnd(r.Context(), database.MarkTripEndParams{
+		EndDate:     endDate,
+		EndLocation: formatPoint(params.EndLocation),
+		EndLocationName: sql.NullString{
+			String: params.EndLocation.Name,
+			Valid:  true,
+		},
+		UserID:    user.ID,
+		ID:        tripUUID,
+		UpdatedAt: time.Now(),
 	})
 
 	if err != nil {

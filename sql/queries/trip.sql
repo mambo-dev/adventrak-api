@@ -37,7 +37,7 @@ RETURNING  id;
 
 -- name: DeleteTrip :exec
 DELETE FROM trips
-WHERE  id = $1;
+WHERE   id = $1 AND user_id = $2;
 
 
 -- name: GetTrips :many
@@ -81,3 +81,14 @@ WHERE user_id = $1 AND id = $2;
 -- name: GetTripDistance :one
 SELECT ST_Distance(start_location, end_location) AS distance 
 FROM trips WHERE id = $1;
+
+-- name: MarkTripEnd :one 
+UPDATE trips
+SET
+    end_location_name = $1,
+    end_location =$2,
+    end_date = $3,
+    updated_at = $4
+WHERE
+    id = $5 AND user_id = $6
+RETURNING  id;

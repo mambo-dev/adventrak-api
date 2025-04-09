@@ -111,8 +111,9 @@ func main() {
 		v1Router.Get("/trips", apiCfg.UseAuth(apiCfg.handlerGetTrips))
 		v1Router.Get("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerGetTrip))
 		v1Router.Post("/trips", apiCfg.UseAuth(apiCfg.handlerCreateTrip))
-		v1Router.Put("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerRefresh))
-		v1Router.Delete("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerRefresh))
+		v1Router.Put("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerUpdateTripDetails))
+		v1Router.Patch("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerMarkTripComplete))
+		v1Router.Delete("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerDeleteTrip))
 	}
 
 	if workEnv == "dev" {

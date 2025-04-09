@@ -218,6 +218,41 @@ func (q *Queries) GetTrips(ctx context.Context, userID uuid.UUID) ([]GetTripsRow
 	return items, nil
 }
 
+const markTripEnd = `-- name: MarkTripEnd :one
+UPDATE trips
+SET
+    end_location_name = $1,
+    end_location =$2,
+    end_date = $3,
+    updated_at = $4
+WHERE
+    id = $5 AND user_id = $6
+RETURNING  id
+`
+
+type MarkTripEndParams struct {
+	EndLocationName sql.NullString
+	EndLocation     interface{}
+	EndDate         sql.NullTime
+	UpdatedAt       time.Time
+	ID              uuid.UUID
+	UserID          uuid.UUID
+}
+
+func (q *Queries) MarkTripEnd(ctx context.Context, arg MarkTripEndParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, markTripEnd,
+		arg.EndLocationName,
+		arg.EndLocation,
+		arg.EndDate,
+		arg.UpdatedAt,
+		arg.ID,
+		arg.UserID,
+	)
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
+}
+
 const updateTrip = `-- name: UpdateTrip :one
 UPDATE trips
 SET
