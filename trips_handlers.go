@@ -400,46 +400,18 @@ func (cfg apiConfig) handlerDeleteTrip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := &EndTrip{}
-
-	if err = json.NewDecoder(r.Body).Decode(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
-		return
-	}
-
-	if err := validator.New().Struct(params); err != nil {
-		respondWithError(w, http.StatusBadRequest, "Failed to validate user input", err, true)
-		return
-	}
-
-	var endDate sql.NullTime
-	if params.EndDate != nil {
-		endDate = sql.NullTime{Time: *params.EndDate, Valid: true}
-	}
-
-	tripID, err := cfg.db.MarkTripEnd(r.Context(), database.MarkTripEndParams{
-		EndDate:     endDate,
-		EndLocation: formatPoint(params.EndLocation),
-		EndLocationName: sql.NullString{
-			String: params.EndLocation.Name,
-			Valid:  true,
-		},
-		UserID:    user.ID,
-		ID:        tripUUID,
-		UpdatedAt: time.Now(),
+	err = cfg.db.DeleteTrip(r.Context(), database.DeleteTripParams{
+		UserID: user.ID,
+		ID:     tripUUID,
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Failed to return users trips", err, false)
+		respondWithError(w, http.StatusNotFound, "Failed to delete user's trip", err, false)
 		return
 	}
 
 	respondWithJSON(w, http.StatusOK, ApiResponse{
 		Status: "success",
-		Data: struct {
-			TripID uuid.UUID `json:"tripID"`
-		}{
-			TripID: tripID,
-		},
+		Data:   nil,
 	})
 }

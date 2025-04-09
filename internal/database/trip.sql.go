@@ -65,11 +65,16 @@ func (q *Queries) CreateTrip(ctx context.Context, arg CreateTripParams) (uuid.UU
 
 const deleteTrip = `-- name: DeleteTrip :exec
 DELETE FROM trips
-WHERE  id = $1
+WHERE   id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteTrip(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteTrip, id)
+type DeleteTripParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteTrip(ctx context.Context, arg DeleteTripParams) error {
+	_, err := q.db.ExecContext(ctx, deleteTrip, arg.ID, arg.UserID)
 	return err
 }
 
