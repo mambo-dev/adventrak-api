@@ -51,8 +51,8 @@ func convertToTripResponse(dbTrip *database.GetTripRow, dbTrips *database.GetTri
 
 	return TripResponse{
 		ID:                dbTrips.ID,
-		StartLocationName: dbTrip.StartLocationName,
-		EndLocationName:   dbTrip.EndLocationName,
+		StartLocationName: dbTrips.StartLocationName,
+		EndLocationName:   dbTrips.EndLocationName,
 		StartDate:         dbTrips.StartDate,
 		StartLat:          dbTrips.StartLat,
 		StartLng:          dbTrips.StartLng,
