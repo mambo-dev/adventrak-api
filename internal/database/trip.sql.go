@@ -15,6 +15,8 @@ import (
 
 const createTrip = `-- name: CreateTrip :one
 INSERT INTO trips (
+    trip_title,
+    start_location_name,
     start_date,
     start_location,
     end_location,
@@ -27,12 +29,16 @@ $2,
 $3,
 $4,
 $5,
-$6
+$6,
+$7,
+$8
 )
 RETURNING  id
 `
 
 type CreateTripParams struct {
+	TripTitle         string
+	StartLocationName string
 	StartDate         time.Time
 	StartLocation     interface{}
 	EndLocation       interface{}
@@ -43,6 +49,8 @@ type CreateTripParams struct {
 
 func (q *Queries) CreateTrip(ctx context.Context, arg CreateTripParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, createTrip,
+		arg.TripTitle,
+		arg.StartLocationName,
 		arg.StartDate,
 		arg.StartLocation,
 		arg.EndLocation,
@@ -68,6 +76,8 @@ func (q *Queries) DeleteTrip(ctx context.Context, id uuid.UUID) error {
 const getTrip = `-- name: GetTrip :one
 SELECT 
   id,
+  start_location_name,
+  end_location_name,
   start_date,
   end_date,
   distance_travelled,
@@ -89,6 +99,8 @@ type GetTripParams struct {
 
 type GetTripRow struct {
 	ID                uuid.UUID
+	StartLocationName string
+	EndLocationName   sql.NullString
 	StartDate         time.Time
 	EndDate           sql.NullTime
 	DistanceTravelled sql.NullFloat64
@@ -106,6 +118,8 @@ func (q *Queries) GetTrip(ctx context.Context, arg GetTripParams) (GetTripRow, e
 	var i GetTripRow
 	err := row.Scan(
 		&i.ID,
+		&i.StartLocationName,
+		&i.EndLocationName,
 		&i.StartDate,
 		&i.EndDate,
 		&i.DistanceTravelled,
@@ -135,6 +149,8 @@ func (q *Queries) GetTripDistance(ctx context.Context, id uuid.UUID) (interface{
 const getTrips = `-- name: GetTrips :many
 SELECT   
   id,
+  start_location_name,
+  end_location_name,
   start_date,
   end_date,
   distance_travelled,
@@ -151,6 +167,8 @@ WHERE user_id = $1
 
 type GetTripsRow struct {
 	ID                uuid.UUID
+	StartLocationName string
+	EndLocationName   sql.NullString
 	StartDate         time.Time
 	EndDate           sql.NullTime
 	DistanceTravelled sql.NullFloat64
@@ -174,6 +192,8 @@ func (q *Queries) GetTrips(ctx context.Context, userID uuid.UUID) ([]GetTripsRow
 		var i GetTripsRow
 		if err := rows.Scan(
 			&i.ID,
+			&i.StartLocationName,
+			&i.EndLocationName,
 			&i.StartDate,
 			&i.EndDate,
 			&i.DistanceTravelled,
@@ -201,30 +221,35 @@ func (q *Queries) GetTrips(ctx context.Context, userID uuid.UUID) ([]GetTripsRow
 const updateTrip = `-- name: UpdateTrip :one
 UPDATE trips
 SET
-    end_location = $1,
-    end_date = $2,
-    distance_travelled = $3,
-    updated_at = $4
+    start_location_name = $4,
+    start_location =$1,
+    trip_title = $2,
+    end_date = $3,
+    updated_at = $5
 WHERE
-    id = $5 
+    id = $6 AND user_id =$7
 RETURNING  id
 `
 
 type UpdateTripParams struct {
-	EndLocation       interface{}
+	StartLocation     interface{}
+	TripTitle         string
 	EndDate           sql.NullTime
-	DistanceTravelled sql.NullFloat64
+	StartLocationName string
 	UpdatedAt         time.Time
 	ID                uuid.UUID
+	UserID            uuid.UUID
 }
 
 func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, updateTrip,
-		arg.EndLocation,
+		arg.StartLocation,
+		arg.TripTitle,
 		arg.EndDate,
-		arg.DistanceTravelled,
+		arg.StartLocationName,
 		arg.UpdatedAt,
 		arg.ID,
+		arg.UserID,
 	)
 	var id uuid.UUID
 	err := row.Scan(&id)

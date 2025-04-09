@@ -1,5 +1,7 @@
 -- name: CreateTrip :one
 INSERT INTO trips (
+    trip_title,
+    start_location_name,
     start_date,
     start_location,
     end_location,
@@ -12,7 +14,9 @@ $2,
 $3,
 $4,
 $5,
-$6
+$6,
+$7,
+$8
 )
 RETURNING  id;
 
@@ -21,12 +25,13 @@ RETURNING  id;
 -- name: UpdateTrip :one
 UPDATE trips
 SET
-    end_location = $1,
-    end_date = $2,
-    distance_travelled = $3,
-    updated_at = $4
+    start_location_name = $4,
+    start_location =$1,
+    trip_title = $2,
+    end_date = $3,
+    updated_at = $5
 WHERE
-    id = $5 
+    id = $6 AND user_id =$7
 RETURNING  id;
 
 
@@ -38,6 +43,8 @@ WHERE  id = $1;
 -- name: GetTrips :many
 SELECT   
   id,
+  start_location_name,
+  end_location_name,
   start_date,
   end_date,
   distance_travelled,
@@ -55,6 +62,8 @@ WHERE user_id = $1;
 -- name: GetTrip :one
 SELECT 
   id,
+  start_location_name,
+  end_location_name,
   start_date,
   end_date,
   distance_travelled,

@@ -16,6 +16,8 @@ import (
 type TripResponse struct {
 	ID                uuid.UUID       `json:"id"`
 	StartDate         time.Time       `json:"startDate"`
+	StartLocationName string          `json:"startLocationName"`
+	EndLocationName   sql.NullString  `json:"endLocationName"`
 	StartLat          interface{}     `json:"startLat"`
 	StartLng          interface{}     `json:"startLng"`
 	EndLat            interface{}     `json:"endLat"`
@@ -32,6 +34,8 @@ func convertToTripResponse(dbTrip *database.GetTripRow, dbTrips *database.GetTri
 	if dbTrip != nil {
 		return TripResponse{
 			ID:                dbTrip.ID,
+			StartLocationName: dbTrip.StartLocationName,
+			EndLocationName:   dbTrip.EndLocationName,
 			StartDate:         dbTrip.StartDate,
 			StartLat:          dbTrip.StartLat,
 			StartLng:          dbTrip.StartLng,
@@ -47,6 +51,8 @@ func convertToTripResponse(dbTrip *database.GetTripRow, dbTrips *database.GetTri
 
 	return TripResponse{
 		ID:                dbTrips.ID,
+		StartLocationName: dbTrip.StartLocationName,
+		EndLocationName:   dbTrip.EndLocationName,
 		StartDate:         dbTrips.StartDate,
 		StartLat:          dbTrips.StartLat,
 		StartLng:          dbTrips.StartLng,
@@ -150,10 +156,11 @@ type Location struct {
 	Lng  float64 `json:"lng" validate:"required"`
 }
 
-type CreateTrip struct {
+type TripDetails struct {
 	StartDate     time.Time  `json:"startDate" validate:"required"`
 	StartLocation Location   `json:"startLocation" validate:"required"`
 	EndDate       *time.Time `json:"endDate,omitempty"`
+	TripTitle     string     `json:"tripTitle" validate:"required"`
 }
 
 func formatPoint(loc Location) string {
@@ -179,7 +186,7 @@ func (cfg apiConfig) handlerCreateTrip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	params := &CreateTrip{}
+	params := &TripDetails{}
 
 	if err = json.NewDecoder(r.Body).Decode(params); err != nil {
 		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
@@ -197,10 +204,11 @@ func (cfg apiConfig) handlerCreateTrip(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tripID, err := cfg.db.CreateTrip(r.Context(), database.CreateTripParams{
-		StartDate:     params.StartDate,
-		EndDate:       endDate,
-		StartLocation: formatPoint(params.StartLocation),
-		UserID:        user.ID,
+		StartDate:         params.StartDate,
+		EndDate:           endDate,
+		StartLocation:     formatPoint(params.StartLocation),
+		UserID:            user.ID,
+		StartLocationName: params.StartLocation.Name,
 	})
 
 	if err != nil {
@@ -218,7 +226,7 @@ func (cfg apiConfig) handlerCreateTrip(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg apiConfig) handlerGetTrip(w http.ResponseWriter, r *http.Request) {
+func (cfg apiConfig) updateTripDetails(w http.ResponseWriter, r *http.Request) {
 	err := rateLimit(w, r, "general")
 
 	if err != nil {
@@ -237,16 +245,39 @@ func (cfg apiConfig) handlerGetTrip(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tripID := chi.URLParam(r, "tripID")
+	paramID := chi.URLParam(r, "tripID")
 
-	tripUUID, err := uuid.Parse(tripID)
+	tripUUID, err := uuid.Parse(paramID)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
 		return
 	}
 
-	tripID, err = cfg.db.UpdateTrip(r.Context(), database.UpdateTripParams{})
+	params := &TripDetails{}
+
+	if err = json.NewDecoder(r.Body).Decode(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
+		return
+	}
+
+	if err := validator.New().Struct(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to validate user input", err, true)
+		return
+	}
+
+	var endDate sql.NullTime
+	if params.EndDate != nil {
+		endDate = sql.NullTime{Time: *params.EndDate, Valid: true}
+	}
+
+	tripID, err := cfg.db.UpdateTrip(r.Context(), database.UpdateTripParams{
+		EndDate:           endDate,
+		StartLocation:     formatPoint(params.StartLocation),
+		UserID:            user.ID,
+		ID:                tripUUID,
+		StartLocationName: params.StartLocation.Name,
+	})
 
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Failed to return users trips", err, false)

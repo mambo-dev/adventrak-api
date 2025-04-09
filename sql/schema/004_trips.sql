@@ -2,6 +2,7 @@
 
 CREATE TABLE trips (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    trip_title VARCHAR NOT NULL,
     start_date TIMESTAMP NOT NULL DEFAULT NOW(),
     start_location GEOGRAPHY(POINT, 4326) NOT NULL,
     end_location GEOGRAPHY(POINT, 4326) NOT NULL,

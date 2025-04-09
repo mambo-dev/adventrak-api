@@ -36,6 +36,7 @@ type RefreshToken struct {
 
 type Trip struct {
 	ID                uuid.UUID
+	TripTitle         string
 	StartDate         time.Time
 	StartLocation     interface{}
 	EndLocation       interface{}
@@ -44,6 +45,8 @@ type Trip struct {
 	CreatedAt         time.Time
 	UpdatedAt         time.Time
 	UserID            uuid.UUID
+	StartLocationName string
+	EndLocationName   sql.NullString
 }
 
 type TripPhoto struct {
