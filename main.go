@@ -108,7 +108,7 @@ func main() {
 		v1Router.Put("/auth/reset-password", apiCfg.handlerResetPassword)
 		v1Router.Post("/auth/logout", apiCfg.UseAuth(http.HandlerFunc(apiCfg.handlerLogout)))
 
-		v1Router.Get("/trips", apiCfg.UseAuth(apiCfg.handlerRefresh))
+		v1Router.Get("/trips", apiCfg.UseAuth(apiCfg.handlerGetTrips))
 		v1Router.Get("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerRefresh))
 		v1Router.Post("/trips", apiCfg.UseAuth(apiCfg.handlerRefresh))
 		v1Router.Put("/trips", apiCfg.UseAuth(apiCfg.handlerRefresh))
