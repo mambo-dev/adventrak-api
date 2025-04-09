@@ -9,7 +9,7 @@ CREATE TABLE trips (
     distance_travelled FLOAT,
     created_at TIMESTAMP NOT NULL DEFAULT NOW(), 
     updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
-    user_id uuid UNIQUE NOT NULL,
+    user_id uuid  NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 -- +goose Down

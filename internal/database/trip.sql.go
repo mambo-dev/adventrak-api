@@ -29,7 +29,7 @@ $4,
 $5,
 $6
 )
-RETURNING id, start_date, start_location, end_location, end_date, distance_travelled, created_at, updated_at, user_id
+RETURNING  id
 `
 
 type CreateTripParams struct {
@@ -41,7 +41,7 @@ type CreateTripParams struct {
 	UserID            uuid.UUID
 }
 
-func (q *Queries) CreateTrip(ctx context.Context, arg CreateTripParams) (Trip, error) {
+func (q *Queries) CreateTrip(ctx context.Context, arg CreateTripParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, createTrip,
 		arg.StartDate,
 		arg.StartLocation,
@@ -50,19 +50,9 @@ func (q *Queries) CreateTrip(ctx context.Context, arg CreateTripParams) (Trip, e
 		arg.DistanceTravelled,
 		arg.UserID,
 	)
-	var i Trip
-	err := row.Scan(
-		&i.ID,
-		&i.StartDate,
-		&i.StartLocation,
-		&i.EndLocation,
-		&i.EndDate,
-		&i.DistanceTravelled,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.UserID,
-	)
-	return i, err
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
 
 const deleteTrip = `-- name: DeleteTrip :exec
@@ -76,8 +66,20 @@ func (q *Queries) DeleteTrip(ctx context.Context, id uuid.UUID) error {
 }
 
 const getTrip = `-- name: GetTrip :one
-SELECT id, start_date, start_location, end_location, end_date, distance_travelled, created_at, updated_at, user_id FROM trips 
-WHERE user_id = $1 AND  id = $2
+SELECT 
+  id,
+  start_date,
+  end_date,
+  distance_travelled,
+  created_at,
+  updated_at,
+  user_id,
+  ST_Y(start_location::geometry) AS start_lat,
+  ST_X(start_location::geometry) AS start_lng,
+  ST_Y(end_location::geometry) AS end_lat,
+  ST_X(end_location::geometry) AS end_lng
+FROM trips
+WHERE user_id = $1 AND id = $2
 `
 
 type GetTripParams struct {
@@ -85,47 +87,103 @@ type GetTripParams struct {
 	ID     uuid.UUID
 }
 
-func (q *Queries) GetTrip(ctx context.Context, arg GetTripParams) (Trip, error) {
+type GetTripRow struct {
+	ID                uuid.UUID
+	StartDate         time.Time
+	EndDate           sql.NullTime
+	DistanceTravelled sql.NullFloat64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	UserID            uuid.UUID
+	StartLat          interface{}
+	StartLng          interface{}
+	EndLat            interface{}
+	EndLng            interface{}
+}
+
+func (q *Queries) GetTrip(ctx context.Context, arg GetTripParams) (GetTripRow, error) {
 	row := q.db.QueryRowContext(ctx, getTrip, arg.UserID, arg.ID)
-	var i Trip
+	var i GetTripRow
 	err := row.Scan(
 		&i.ID,
 		&i.StartDate,
-		&i.StartLocation,
-		&i.EndLocation,
 		&i.EndDate,
 		&i.DistanceTravelled,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.UserID,
+		&i.StartLat,
+		&i.StartLng,
+		&i.EndLat,
+		&i.EndLng,
 	)
 	return i, err
 }
 
+const getTripDistance = `-- name: GetTripDistance :one
+SELECT ST_Distance(start_location, end_location) AS distance 
+FROM trips WHERE id = $1
+`
+
+func (q *Queries) GetTripDistance(ctx context.Context, id uuid.UUID) (interface{}, error) {
+	row := q.db.QueryRowContext(ctx, getTripDistance, id)
+	var distance interface{}
+	err := row.Scan(&distance)
+	return distance, err
+}
+
 const getTrips = `-- name: GetTrips :many
-SELECT id, start_date, start_location, end_location, end_date, distance_travelled, created_at, updated_at, user_id FROM trips 
+SELECT   
+  id,
+  start_date,
+  end_date,
+  distance_travelled,
+  created_at,
+  updated_at,
+  user_id,
+  ST_Y(start_location::geometry) AS start_lat,
+  ST_X(start_location::geometry) AS start_lng,
+  ST_Y(end_location::geometry) AS end_lat,
+  ST_X(end_location::geometry) AS end_lng
+FROM trips 
 WHERE user_id = $1
 `
 
-func (q *Queries) GetTrips(ctx context.Context, userID uuid.UUID) ([]Trip, error) {
+type GetTripsRow struct {
+	ID                uuid.UUID
+	StartDate         time.Time
+	EndDate           sql.NullTime
+	DistanceTravelled sql.NullFloat64
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	UserID            uuid.UUID
+	StartLat          interface{}
+	StartLng          interface{}
+	EndLat            interface{}
+	EndLng            interface{}
+}
+
+func (q *Queries) GetTrips(ctx context.Context, userID uuid.UUID) ([]GetTripsRow, error) {
 	rows, err := q.db.QueryContext(ctx, getTrips, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Trip
+	var items []GetTripsRow
 	for rows.Next() {
-		var i Trip
+		var i GetTripsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.StartDate,
-			&i.StartLocation,
-			&i.EndLocation,
 			&i.EndDate,
 			&i.DistanceTravelled,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.UserID,
+			&i.StartLat,
+			&i.StartLng,
+			&i.EndLat,
+			&i.EndLng,
 		); err != nil {
 			return nil, err
 		}
@@ -149,7 +207,7 @@ SET
     updated_at = $4
 WHERE
     id = $5 
-RETURNING id, start_date, start_location, end_location, end_date, distance_travelled, created_at, updated_at, user_id
+RETURNING  id
 `
 
 type UpdateTripParams struct {
@@ -160,7 +218,7 @@ type UpdateTripParams struct {
 	ID                uuid.UUID
 }
 
-func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (Trip, error) {
+func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (uuid.UUID, error) {
 	row := q.db.QueryRowContext(ctx, updateTrip,
 		arg.EndLocation,
 		arg.EndDate,
@@ -168,17 +226,7 @@ func (q *Queries) UpdateTrip(ctx context.Context, arg UpdateTripParams) (Trip, e
 		arg.UpdatedAt,
 		arg.ID,
 	)
-	var i Trip
-	err := row.Scan(
-		&i.ID,
-		&i.StartDate,
-		&i.StartLocation,
-		&i.EndLocation,
-		&i.EndDate,
-		&i.DistanceTravelled,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.UserID,
-	)
-	return i, err
+	var id uuid.UUID
+	err := row.Scan(&id)
+	return id, err
 }
