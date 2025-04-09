@@ -101,11 +101,19 @@ func main() {
 		v1Router.Post("/auth/signup", apiCfg.handlerSignup)
 		v1Router.Post("/auth/login", apiCfg.handlerLogin)
 		v1Router.Post("/auth/refresh", apiCfg.handlerRefresh)
-		v1Router.Get("/auth/send-verification", apiCfg.handlerSendVerification)
-		v1Router.Put("/auth/verify-email", apiCfg.handlerVerifyEmail)
+		v1Router.Get("/auth/send-verification",
+			apiCfg.UseAuth(apiCfg.handlerSendVerification))
+		v1Router.Put("/auth/verify-email", apiCfg.UseAuth(http.HandlerFunc(apiCfg.handlerVerifyEmail)))
 		v1Router.Get("/auth/request-password-reset", apiCfg.handlerResetRequest)
 		v1Router.Put("/auth/reset-password", apiCfg.handlerResetPassword)
-		v1Router.Post("/auth/logout", apiCfg.handlerLogin)
+		v1Router.Post("/auth/logout", apiCfg.UseAuth(http.HandlerFunc(apiCfg.handlerLogout)))
+
+		v1Router.Get("/trips", apiCfg.UseAuth(apiCfg.handlerGetTrips))
+		v1Router.Get("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerGetTrip))
+		v1Router.Post("/trips", apiCfg.UseAuth(apiCfg.handlerCreateTrip))
+		v1Router.Put("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerUpdateTripDetails))
+		v1Router.Patch("/trips/{tripID}/end", apiCfg.UseAuth(apiCfg.handlerMarkTripComplete))
+		v1Router.Delete("/trips/{tripID}", apiCfg.UseAuth(apiCfg.handlerDeleteTrip))
 	}
 
 	if workEnv == "dev" {

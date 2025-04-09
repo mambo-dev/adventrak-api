@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -65,6 +66,16 @@ func (cfg *apiConfig) handlerSignup(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Failed to create user", err, false)
+		return
+	}
+
+	err = cfg.db.CreateAccount(r.Context(), uuid.NullUUID{
+		UUID:  user.ID,
+		Valid: true,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to create account", err, false)
 		return
 	}
 
@@ -291,19 +302,8 @@ func (cfg apiConfig) handlerSendVerification(w http.ResponseWriter, r *http.Requ
 		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
 		return
 	}
-	token, err := auth.GetBearerToken(r.Header)
 
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Failed to get bearer token", err, false)
-		return
-	}
-
-	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
-
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid Token. Please login again.", err, false)
-		return
-	}
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
 
 	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
 		ID: userID,
@@ -322,7 +322,7 @@ func (cfg apiConfig) handlerSendVerification(w http.ResponseWriter, r *http.Requ
 	}
 
 	err = cfg.db.SetVerificationCode(r.Context(), database.SetVerificationCodeParams{
-		VerificationCode: string(randomNumber),
+		VerificationCode: randomNumber,
 		UserID: uuid.NullUUID{
 			UUID:  user.ID,
 			Valid: true,
@@ -338,9 +338,13 @@ func (cfg apiConfig) handlerSendVerification(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
+	referralLink := fmt.Sprintf("%sverify-email?code=%s&user_email=%s", cfg.frontEndURL, randomNumber, user.Email)
+
 	HTMLTemplate := mailer.MakeEmailTemplate("Verify Email address.",
 		fmt.Sprintf(`Thank you %s for joining adven trak kindly click the button to verify you email.`, user.Username),
-		fmt.Sprintf("%s/verify-email?code=%s&user_email=%s", cfg.frontEndURL, randomNumber, user.Email))
+		referralLink)
+
+	log.Println("sending to the frontend url ", referralLink)
 
 	err = mailer.SendEmail(mailer.EmailDetails{
 		FromEmail:   mailer.SystemEmails["system"].Email,
@@ -370,19 +374,8 @@ func (cfg apiConfig) handlerVerifyEmail(w http.ResponseWriter, r *http.Request) 
 		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
 		return
 	}
-	token, err := auth.GetBearerToken(r.Header)
 
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Failed to get bearer token", err, false)
-		return
-	}
-
-	userID, err := auth.ValidateJWT(token, cfg.jwtSecret)
-
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Invalid Token. Please login again.", err, false)
-		return
-	}
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
 
 	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
 		ID: userID,
@@ -510,7 +503,7 @@ func (cfg apiConfig) handlerResetRequest(w http.ResponseWriter, r *http.Request)
 		fmt.Sprintln(`We have received a password request reset for you account if this was not you, 
 		you can safely ignore this email. 
 		If you sent one click the button below <strong>The link below expires after 15 minutes.</strong>`),
-		fmt.Sprintf("%s/reset-password?reset_code=%s&user_email=%s", cfg.frontEndURL, string(randomNumber), user.Email))
+		fmt.Sprintf("%sreset-password?reset_code=%s&user_email=%s", cfg.frontEndURL, randomNumber, user.Email))
 
 	err = mailer.SendEmail(mailer.EmailDetails{
 		FromEmail:   mailer.SystemEmails["system"].Email,
@@ -567,8 +560,8 @@ func (cfg apiConfig) handlerResetPassword(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	resetCode := r.URL.Query().Get("code")
-	resetEmail := r.URL.Query().Get("email")
+	resetCode := r.URL.Query().Get("reset_code")
+	resetEmail := r.URL.Query().Get("user_email")
 
 	if resetEmail == "" || resetCode == "" {
 		respondWithError(w, http.StatusBadRequest, "No query params sent", err, false)
@@ -585,7 +578,8 @@ func (cfg apiConfig) handlerResetPassword(w http.ResponseWriter, r *http.Request
 	}
 
 	account, err := cfg.db.GetUserAccount(r.Context(), uuid.NullUUID{
-		UUID: user.ID,
+		UUID:  user.ID,
+		Valid: true,
 	})
 
 	if err != nil {
@@ -593,6 +587,7 @@ func (cfg apiConfig) handlerResetPassword(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	log.Println(account.ResetCode.String, resetCode)
 	if account.ResetCode.String != resetCode {
 		respondWithError(w, http.StatusForbidden, "Invalid reset code", nil, false)
 		return
@@ -635,6 +630,45 @@ func (cfg apiConfig) handlerResetPassword(w http.ResponseWriter, r *http.Request
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Failed to  update password", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
+	})
+
+}
+
+func (cfg apiConfig) handlerLogout(w http.ResponseWriter, r *http.Request) {
+
+	type Params struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+
+	params := &Params{}
+
+	decoder := json.NewDecoder(r.Body)
+
+	err := decoder.Decode(params)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to get refresh token from body", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	err = cfg.db.RevokeRefreshToken(r.Context(), database.RevokeRefreshTokenParams{
+		UserID: uuid.NullUUID{
+			UUID:  userID,
+			Valid: true,
+		},
+		Token: params.RefreshToken,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusUnauthorized, "No valid token for this user found.", err, false)
 		return
 	}
 

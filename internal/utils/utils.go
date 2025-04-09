@@ -2,17 +2,18 @@ package utils
 
 import (
 	"crypto/rand"
+	"encoding/hex"
 )
 
-func Random32Generator() ([]byte, error) {
+func Random32Generator() (string, error) {
 	number := make([]byte, 32)
 
 	_, err := rand.Read(number)
 
 	if err != nil {
 
-		return make([]byte, 0), err
+		return "", err
 	}
 
-	return number, nil
+	return hex.EncodeToString(number), nil
 }
