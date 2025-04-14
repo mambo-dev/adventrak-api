@@ -14,7 +14,7 @@ SELECT
     ST_Y(location_tag::geometry) AS end_lat,
     ST_X(location_tag::geometry) AS end_lng
 FROM trip_stop
-WHERE trip_id = $1 AND user_id = $2 AND id = $3;
+WHERE user_id = $1 AND id = $2;
 
 
 -- name: CreateStop :one

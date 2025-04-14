@@ -61,11 +61,10 @@ SELECT
     ST_Y(location_tag::geometry) AS end_lat,
     ST_X(location_tag::geometry) AS end_lng
 FROM trip_stop
-WHERE trip_id = $1 AND user_id = $2 AND id = $3
+WHERE user_id = $1 AND id = $2
 `
 
 type GetStopParams struct {
-	TripID uuid.UUID
 	UserID uuid.UUID
 	ID     uuid.UUID
 }
@@ -78,7 +77,7 @@ type GetStopRow struct {
 }
 
 func (q *Queries) GetStop(ctx context.Context, arg GetStopParams) (GetStopRow, error) {
-	row := q.db.QueryRowContext(ctx, getStop, arg.TripID, arg.UserID, arg.ID)
+	row := q.db.QueryRowContext(ctx, getStop, arg.UserID, arg.ID)
 	var i GetStopRow
 	err := row.Scan(
 		&i.LocationName,

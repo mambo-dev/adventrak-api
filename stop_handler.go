@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
 )
@@ -90,7 +91,47 @@ func (cfg apiConfig) handlerGetStops(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg apiConfig) handlerGetStop(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
 
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	stopID := chi.URLParam(r, "stopID")
+
+	stopUUID, err := uuid.Parse(stopID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
+		return
+	}
+
+	stop, err := cfg.db.GetStop(r.Context(), database.GetStopParams{
+		UserID: user.ID,
+		ID:     stopUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to return trip stop", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   convertToStopRow(nil, &stop),
+	})
 }
 
 func (cfg apiConfig) handlerCreateStop(w http.ResponseWriter, r *http.Request) {
