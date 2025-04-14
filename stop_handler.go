@@ -10,6 +10,7 @@ import (
 )
 
 type StopResponse struct {
+	ID           uuid.UUID   `json:"id"`
 	LocationName string      `json:"locationName"`
 	CreatedAt    time.Time   `json:"createdAt"`
 	EndLat       interface{} `json:"endLat"`
@@ -19,6 +20,7 @@ type StopResponse struct {
 func convertToStopRow(rows *database.GetStopsRow, row *database.GetStopRow) StopResponse {
 	if row != nil {
 		return StopResponse{
+			ID:           row.ID,
 			LocationName: row.LocationName,
 			CreatedAt:    row.CreatedAt,
 			EndLat:       row.EndLat,
@@ -27,6 +29,7 @@ func convertToStopRow(rows *database.GetStopsRow, row *database.GetStopRow) Stop
 	}
 
 	return StopResponse{
+		ID:           rows.ID,
 		LocationName: rows.LocationName,
 		CreatedAt:    rows.CreatedAt,
 		EndLat:       rows.EndLat,
