@@ -1,5 +1,6 @@
 -- name: GetStops :many
 SELECT
+    id,
     location_name,
     created_at,
     ST_Y(location_tag::geometry) AS end_lat,
@@ -9,6 +10,7 @@ WHERE trip_id = $1 AND user_id = $2;
 
 -- name: GetStop :one
 SELECT
+    id,
     location_name,
     created_at,
     ST_Y(location_tag::geometry) AS end_lat,

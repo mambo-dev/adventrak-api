@@ -56,6 +56,7 @@ func (q *Queries) DeleteStop(ctx context.Context, arg DeleteStopParams) error {
 
 const getStop = `-- name: GetStop :one
 SELECT
+    id,
     location_name,
     created_at,
     ST_Y(location_tag::geometry) AS end_lat,
@@ -70,6 +71,7 @@ type GetStopParams struct {
 }
 
 type GetStopRow struct {
+	ID           uuid.UUID
 	LocationName string
 	CreatedAt    time.Time
 	EndLat       interface{}
@@ -80,6 +82,7 @@ func (q *Queries) GetStop(ctx context.Context, arg GetStopParams) (GetStopRow, e
 	row := q.db.QueryRowContext(ctx, getStop, arg.UserID, arg.ID)
 	var i GetStopRow
 	err := row.Scan(
+		&i.ID,
 		&i.LocationName,
 		&i.CreatedAt,
 		&i.EndLat,
@@ -90,6 +93,7 @@ func (q *Queries) GetStop(ctx context.Context, arg GetStopParams) (GetStopRow, e
 
 const getStops = `-- name: GetStops :many
 SELECT
+    id,
     location_name,
     created_at,
     ST_Y(location_tag::geometry) AS end_lat,
@@ -104,6 +108,7 @@ type GetStopsParams struct {
 }
 
 type GetStopsRow struct {
+	ID           uuid.UUID
 	LocationName string
 	CreatedAt    time.Time
 	EndLat       interface{}
@@ -120,6 +125,7 @@ func (q *Queries) GetStops(ctx context.Context, arg GetStopsParams) ([]GetStopsR
 	for rows.Next() {
 		var i GetStopsRow
 		if err := rows.Scan(
+			&i.ID,
 			&i.LocationName,
 			&i.CreatedAt,
 			&i.EndLat,
