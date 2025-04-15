@@ -228,22 +228,22 @@ func (cfg apiConfig) handlerUpdateStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	tripID := chi.URLParam(r, "tripID")
+	stopID := chi.URLParam(r, "stopID")
 
-	tripUUID, err := uuid.Parse(tripID)
+	stopUUID, err := uuid.Parse(stopID)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
 		return
 	}
 
-	trip, err := cfg.db.GetTrip(r.Context(), database.GetTripParams{
+	stop, err := cfg.db.GetStop(r.Context(), database.GetStopParams{
 		UserID: user.ID,
-		ID:     tripUUID,
+		ID:     stopUUID,
 	})
 
 	if err != nil {
-		respondWithError(w, http.StatusNotFound, "Unable to find trip possibly deleted", err, false)
+		respondWithError(w, http.StatusNotFound, "Unable to find stop to update possibly not deleted or you did not create this stop", err, false)
 		return
 	}
 
@@ -253,10 +253,11 @@ func (cfg apiConfig) handlerUpdateStop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	stopID, err := cfg.db.CreateStop(r.Context(), database.CreateStopParams{
+	updatedStopID, err := cfg.db.UpdateStop(r.Context(), database.UpdateStopParams{
 		LocationName: params.LocationTag.Name,
 		LocationTag:  utils.FormatPoint(params.LocationTag),
-		TripID:       trip.ID,
+		UserID:       user.ID,
+		ID:           stop.ID,
 	})
 
 	if err != nil {
@@ -269,7 +270,7 @@ func (cfg apiConfig) handlerUpdateStop(w http.ResponseWriter, r *http.Request) {
 		Data: struct {
 			StopID uuid.UUID `json:"stopID"`
 		}{
-			StopID: stopID,
+			StopID: updatedStopID,
 		},
 	})
 }
