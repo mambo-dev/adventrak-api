@@ -141,7 +141,6 @@ func (cfg apiConfig) handlerGetStop(w http.ResponseWriter, r *http.Request) {
 
 type StopParams struct {
 	LocationTag utils.Location
-	TripID      uuid.UUID
 }
 
 func (cfg apiConfig) handlerCreateStop(w http.ResponseWriter, r *http.Request) {
