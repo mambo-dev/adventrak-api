@@ -42,7 +42,7 @@ func getLimiter(ip string, route string) *rate.Limiter {
 		return c.limiter
 	}
 
-	limiter := rate.NewLimiter(rate.Every(time.Minute/5), 8)
+	limiter := rate.NewLimiter(5, 10)
 
 	limiters[ip] = &Limiter{
 		limiter:  limiter,
