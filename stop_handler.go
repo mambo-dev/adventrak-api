@@ -277,5 +277,55 @@ func (cfg apiConfig) handlerUpdateStop(w http.ResponseWriter, r *http.Request) {
 }
 
 func (cfg apiConfig) handlerDeleteStop(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
 
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	stopID := chi.URLParam(r, "stopID")
+
+	stopUUID, err := uuid.Parse(stopID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
+		return
+	}
+
+	stop, err := cfg.db.GetStop(r.Context(), database.GetStopParams{
+		UserID: user.ID,
+		ID:     stopUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find stop to update possibly not deleted or you did not create this stop", err, false)
+		return
+	}
+
+	err = cfg.db.DeleteStop(r.Context(), database.DeleteStopParams{
+		ID:     stop.ID,
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to delete trip's stop", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
+	})
 }
