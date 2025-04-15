@@ -192,6 +192,7 @@ func (cfg apiConfig) handlerCreateStop(w http.ResponseWriter, r *http.Request) {
 		LocationName: params.LocationTag.Name,
 		LocationTag:  utils.FormatPoint(params.LocationTag),
 		TripID:       trip.ID,
+		UserID:       trip.UserID,
 	})
 
 	if err != nil {
