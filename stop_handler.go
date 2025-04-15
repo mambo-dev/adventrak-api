@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
+	"github.com/mambo-dev/adventrak-backend/internal/utils"
 )
 
 type StopResponse struct {
@@ -137,12 +139,139 @@ func (cfg apiConfig) handlerGetStop(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (cfg apiConfig) handlerCreateStop(w http.ResponseWriter, r *http.Request) {
+type StopParams struct {
+	LocationTag utils.Location
+	TripID      uuid.UUID
+}
 
+func (cfg apiConfig) handlerCreateStop(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	tripID := chi.URLParam(r, "tripID")
+
+	tripUUID, err := uuid.Parse(tripID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
+		return
+	}
+
+	trip, err := cfg.db.GetTrip(r.Context(), database.GetTripParams{
+		UserID: user.ID,
+		ID:     tripUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find trip possibly deleted", err, false)
+		return
+	}
+
+	params := &StopParams{}
+	if err := json.NewDecoder(r.Body).Decode(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
+		return
+	}
+
+	stopID, err := cfg.db.CreateStop(r.Context(), database.CreateStopParams{
+		LocationName: params.LocationTag.Name,
+		LocationTag:  utils.FormatPoint(params.LocationTag),
+		TripID:       trip.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create  stop", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, ApiResponse{
+		Status: "success",
+		Data: struct {
+			StopID uuid.UUID `json:"stopID"`
+		}{
+			StopID: stopID,
+		},
+	})
 }
 
 func (cfg apiConfig) handlerUpdateStop(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
 
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	tripID := chi.URLParam(r, "tripID")
+
+	tripUUID, err := uuid.Parse(tripID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
+		return
+	}
+
+	trip, err := cfg.db.GetTrip(r.Context(), database.GetTripParams{
+		UserID: user.ID,
+		ID:     tripUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find trip possibly deleted", err, false)
+		return
+	}
+
+	params := &StopParams{}
+	if err := json.NewDecoder(r.Body).Decode(params); err != nil {
+		respondWithError(w, http.StatusBadRequest, "Could not read trip details", err, false)
+		return
+	}
+
+	stopID, err := cfg.db.CreateStop(r.Context(), database.CreateStopParams{
+		LocationName: params.LocationTag.Name,
+		LocationTag:  utils.FormatPoint(params.LocationTag),
+		TripID:       trip.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Failed to create  stop", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, ApiResponse{
+		Status: "success",
+		Data: struct {
+			StopID uuid.UUID `json:"stopID"`
+		}{
+			StopID: stopID,
+		},
+	})
 }
 
 func (cfg apiConfig) handlerDeleteStop(w http.ResponseWriter, r *http.Request) {

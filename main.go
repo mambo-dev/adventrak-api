@@ -117,7 +117,7 @@ func main() {
 
 		v1Router.Get("/stops", apiCfg.UseAuth(apiCfg.handlerGetStops))
 		v1Router.Get("/stops/{stopID}", apiCfg.UseAuth(apiCfg.handlerGetStop))
-		v1Router.Post("/stops", apiCfg.UseAuth(apiCfg.handlerCreateStop))
+		v1Router.Post("/stops/{tripID}", apiCfg.UseAuth(apiCfg.handlerCreateStop))
 		v1Router.Put("/stops/{stopID}", apiCfg.UseAuth(apiCfg.handlerUpdateStop))
 		v1Router.Delete("/stops/{stopID}", apiCfg.UseAuth(apiCfg.handlerDeleteStop))
 	}
