@@ -3,7 +3,6 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"math"
 	"net/http"
@@ -13,6 +12,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
+	"github.com/mambo-dev/adventrak-backend/internal/utils"
 )
 
 type TripResponse struct {
@@ -152,26 +152,16 @@ func (cfg apiConfig) handlerGetTrip(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-type Location struct {
-	Name string  `json:"name" validate:"required"`
-	Lat  float64 `json:"lat" validate:"required"`
-	Lng  float64 `json:"lng" validate:"required"`
-}
-
 type TripDetails struct {
-	StartDate     time.Time  `json:"startDate" validate:"required"`
-	StartLocation Location   `json:"startLocation" validate:"required"`
-	EndDate       *time.Time `json:"endDate,omitempty"`
-	TripTitle     string     `json:"tripTitle" validate:"required"`
+	StartDate     time.Time      `json:"startDate" validate:"required"`
+	StartLocation utils.Location `json:"startLocation" validate:"required"`
+	EndDate       *time.Time     `json:"endDate,omitempty"`
+	TripTitle     string         `json:"tripTitle" validate:"required"`
 }
 
 type EndTrip struct {
-	EndDate     *time.Time `json:"endDate,omitempty"`
-	EndLocation Location   `json:"endLocation" validate:"required"`
-}
-
-func formatPoint(loc Location) string {
-	return fmt.Sprintf("SRID=4326;POINT(%f %f)", loc.Lng, loc.Lat)
+	EndDate     *time.Time     `json:"endDate,omitempty"`
+	EndLocation utils.Location `json:"endLocation" validate:"required"`
 }
 
 func (cfg apiConfig) handlerCreateTrip(w http.ResponseWriter, r *http.Request) {
@@ -213,7 +203,7 @@ func (cfg apiConfig) handlerCreateTrip(w http.ResponseWriter, r *http.Request) {
 	tripID, err := cfg.db.CreateTrip(r.Context(), database.CreateTripParams{
 		StartDate:         params.StartDate,
 		EndDate:           endDate,
-		StartLocation:     formatPoint(params.StartLocation),
+		StartLocation:     utils.FormatPoint(params.StartLocation),
 		UserID:            user.ID,
 		StartLocationName: params.StartLocation.Name,
 	})
@@ -280,7 +270,7 @@ func (cfg apiConfig) handlerUpdateTripDetails(w http.ResponseWriter, r *http.Req
 
 	tripID, err := cfg.db.UpdateTrip(r.Context(), database.UpdateTripParams{
 		EndDate:           endDate,
-		StartLocation:     formatPoint(params.StartLocation),
+		StartLocation:     utils.FormatPoint(params.StartLocation),
 		UserID:            user.ID,
 		ID:                tripUUID,
 		StartLocationName: params.StartLocation.Name,
@@ -349,7 +339,7 @@ func (cfg apiConfig) handlerMarkTripComplete(w http.ResponseWriter, r *http.Requ
 
 	tripID, err := cfg.db.MarkTripEnd(r.Context(), database.MarkTripEndParams{
 		EndDate:     endDate,
-		EndLocation: formatPoint(params.EndLocation),
+		EndLocation: utils.FormatPoint(params.EndLocation),
 		EndLocationName: sql.NullString{
 			String: params.EndLocation.Name,
 			Valid:  true,

@@ -16,12 +16,14 @@ const createStop = `-- name: CreateStop :one
 INSERT INTO trip_stop (
     location_name,
     location_tag,
-    trip_id
+    trip_id,
+    user_id
 )
 VALUES (
     $1,
     $2,
-    $3
+    $3,
+    $4
 )
 RETURNING id
 `
@@ -30,10 +32,16 @@ type CreateStopParams struct {
 	LocationName string
 	LocationTag  interface{}
 	TripID       uuid.UUID
+	UserID       uuid.UUID
 }
 
 func (q *Queries) CreateStop(ctx context.Context, arg CreateStopParams) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, createStop, arg.LocationName, arg.LocationTag, arg.TripID)
+	row := q.db.QueryRowContext(ctx, createStop,
+		arg.LocationName,
+		arg.LocationTag,
+		arg.TripID,
+		arg.UserID,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err

@@ -23,12 +23,14 @@ WHERE user_id = $1 AND id = $2;
 INSERT INTO trip_stop (
     location_name,
     location_tag,
-    trip_id
+    trip_id,
+    user_id
 )
 VALUES (
     $1,
     $2,
-    $3
+    $3,
+    $4
 )
 RETURNING id;
 
