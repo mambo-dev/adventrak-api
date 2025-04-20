@@ -23,4 +23,6 @@ DROP COLUMN reset_code_expires_at;
 
 
 ALTER TABLE account
-ALTER COLUMN reset_code VARCHAR NOT NULL DEFAULT '';
+ALTER COLUMN reset_code TYPE VARCHAR,
+ALTER COLUMN reset_code SET NOT NULL,
+ALTER COLUMN reset_code SET DEFAULT '';

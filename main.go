@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -19,6 +20,8 @@ type apiConfig struct {
 	jwtSecret      string
 	sendGridApiKey string
 	frontEndURL    string
+	assetsRoot     string
+	baseApiUrl     string
 }
 
 func main() {
@@ -60,6 +63,16 @@ func main() {
 		log.Fatal("FATAL: frontend url not set")
 	}
 
+	assetsRoot := os.Getenv("ASSETS_ROOT")
+	if assetsRoot == "" {
+		log.Fatal("ASSETS_ROOT environment variable is not set")
+	}
+
+	baseApiUrl := os.Getenv("BASE_API_URL")
+	if baseApiUrl == "" {
+		log.Fatal("ASSETS_ROOT environment variable is not set")
+	}
+
 	apiCfg := apiConfig{}
 
 	dbURL := os.Getenv("DATABASE_URL")
@@ -77,12 +90,18 @@ func main() {
 	apiCfg.jwtSecret = jwtSecret
 	apiCfg.sendGridApiKey = sendGridApiKey
 	apiCfg.frontEndURL = frontEndURL
+	apiCfg.assetsRoot = assetsRoot
+	apiCfg.baseApiUrl = baseApiUrl
 
 	router := chi.NewRouter()
 	allowedOrigins := []string{"http://*"}
 
 	if workEnv != "dev" {
 		allowedOrigins = []string{"https://*"}
+	}
+
+	if workEnv == "dev" {
+		apiCfg.baseApiUrl = fmt.Sprintf("%v%v", baseApiUrl, port)
 	}
 
 	router.Use(cors.Handler(cors.Options{
