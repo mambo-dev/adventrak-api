@@ -8,10 +8,11 @@ VALUES(
 )
 RETURNING *;
 
--- name: UpdateTripMedia :exec
+-- name: UpdateTripMedia :one
 UPDATE trip_media
 SET photo_url = $1, video_url = $2, updated_at = NOW()
-WHERE id = $3;
+WHERE id = $3
+RETURNING id;
 
 -- name: DeleteTripMedia :exec
 DELETE FROM trip_media

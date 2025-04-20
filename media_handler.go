@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -113,5 +114,100 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 	photoURL := fmt.Sprintf("%v/%v", cfg.baseApiUrl, imageFilePath)
 
 	if len(tripID) > 0 {
+		tripUUID, err := uuid.Parse(tripID)
+
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid trip id", err, false)
+			return
+		}
+
+		trip, err := cfg.db.GetTrip(r.Context(), database.GetTripParams{
+			UserID: user.ID,
+			ID:     tripUUID,
+		})
+
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, "Failed to get this trip, it may have been deleted", err, false)
+			return
+		}
+
+		media, err := cfg.db.CreateTripMedia(r.Context(), database.CreateTripMediaParams{
+			TripID: uuid.NullUUID{
+				UUID:  trip.ID,
+				Valid: true,
+			},
+			PhotoUrl: sql.NullString{
+				String: photoURL,
+				Valid:  true,
+			},
+		})
+
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, "Could not create media", err, false)
+			return
+		}
+
+		respondWithJSON(w, http.StatusCreated, ApiResponse{
+			Status: "success",
+			Data: struct {
+				PhotoID  uuid.UUID      `json:"photoID"`
+				PhotoURL sql.NullString `json:"photoURL"`
+			}{
+				PhotoID:  media.ID,
+				PhotoURL: media.PhotoUrl,
+			},
+		})
+
+		return
 	}
+
+	if len(stopID) <= 0 {
+		respondWithError(w, http.StatusBadRequest, "Invalid Stop ID passed", err, false)
+		return
+	}
+
+	stopUUID, err := uuid.Parse(stopID)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid stop id", err, false)
+		return
+	}
+
+	stop, err := cfg.db.GetStop(r.Context(), database.GetStopParams{
+		UserID: user.ID,
+		ID:     stopUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to get this stop, it may have been deleted", err, false)
+		return
+	}
+
+	media, err := cfg.db.CreateTripMedia(r.Context(), database.CreateTripMediaParams{
+		TripStopID: uuid.NullUUID{
+			UUID:  stop.ID,
+			Valid: true,
+		},
+		PhotoUrl: sql.NullString{
+			String: photoURL,
+			Valid:  true,
+		},
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Could not create media", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, ApiResponse{
+		Status: "success",
+		Data: struct {
+			PhotoID  uuid.UUID      `json:"photoID"`
+			PhotoURL sql.NullString `json:"photoURL"`
+		}{
+			PhotoID:  media.ID,
+			PhotoURL: media.PhotoUrl,
+		},
+	})
+
 }
