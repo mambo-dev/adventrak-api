@@ -49,11 +49,12 @@ type Trip struct {
 	EndLocationName   sql.NullString
 }
 
-type TripPhoto struct {
+type TripMedium struct {
 	ID         uuid.UUID
 	TripID     uuid.NullUUID
 	TripStopID uuid.NullUUID
-	PhotoUrl   string
+	PhotoUrl   sql.NullString
+	VideoUrl   sql.NullString
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }

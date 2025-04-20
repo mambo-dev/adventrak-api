@@ -1,0 +1,225 @@
+package main
+
+import (
+	"database/sql"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"mime"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"github.com/google/uuid"
+	"github.com/mambo-dev/adventrak-backend/internal/database"
+	"github.com/mambo-dev/adventrak-backend/internal/utils"
+)
+
+func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request) {
+
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	tripID := r.URL.Query().Get("tripID")
+
+	stopID := r.URL.Query().Get("stopID")
+
+	if len(tripID) > 0 && len(stopID) > 0 {
+		respondWithError(w, http.StatusBadRequest, "Invalid query params use either stop or trip id but not both", err, false)
+		return
+	}
+
+	const maxMemory = 10 << 20
+
+	err = r.ParseMultipartForm(maxMemory)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to parse memory", err, false)
+		return
+	}
+
+	file, fileHeader, err := r.FormFile("trip_photo")
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to get file", err, false)
+		return
+	}
+
+	defer file.Close()
+
+	mediaTypeHeader := fileHeader.Header.Get("Content-Type")
+
+	mediaType, _, err := mime.ParseMediaType(mediaTypeHeader)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid content type.", err, false)
+		return
+	}
+
+	if mediaTypeHeader != "image/jpeg" && mediaTypeHeader != "image/png" {
+		respondWithError(w, http.StatusForbidden, "Only .png and .jpeg files allowed.", err, false)
+		return
+	}
+
+	extensions, err := mime.ExtensionsByType(mediaType)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	if len(extensions) < 1 {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	randomNumber, err := utils.Random32Generator()
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	fileName := fmt.Sprintf("%v%v", base64.RawURLEncoding.EncodeToString([]byte(randomNumber)), extensions[0])
+
+	imageFilePath := filepath.Join(cfg.assetsRoot, fileName)
+
+	imageFilePath = filepath.Clean(imageFilePath)
+
+	if !strings.HasPrefix(imageFilePath, cfg.assetsRoot) {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	savedFile, err := os.Create(imageFilePath)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	defer savedFile.Close()
+
+	_, err = io.Copy(savedFile, file)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	photoURL := fmt.Sprintf("%v/%v", cfg.baseApiUrl, imageFilePath)
+
+	if len(tripID) > 0 {
+		tripUUID, err := uuid.Parse(tripID)
+
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid trip id", err, false)
+			return
+		}
+
+		trip, err := cfg.db.GetTrip(r.Context(), database.GetTripParams{
+			UserID: user.ID,
+			ID:     tripUUID,
+		})
+
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, "Failed to get this trip, it may have been deleted", err, false)
+			return
+		}
+
+		media, err := cfg.db.CreateTripMedia(r.Context(), database.CreateTripMediaParams{
+			TripID: uuid.NullUUID{
+				UUID:  trip.ID,
+				Valid: true,
+			},
+			PhotoUrl: sql.NullString{
+				String: photoURL,
+				Valid:  true,
+			},
+		})
+
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, "Could not create media", err, false)
+			return
+		}
+
+		respondWithJSON(w, http.StatusCreated, ApiResponse{
+			Status: "success",
+			Data: struct {
+				PhotoID  uuid.UUID      `json:"photoID"`
+				PhotoURL sql.NullString `json:"photoURL"`
+			}{
+				PhotoID:  media.ID,
+				PhotoURL: media.PhotoUrl,
+			},
+		})
+
+		return
+	}
+
+	if len(stopID) <= 0 {
+		respondWithError(w, http.StatusBadRequest, "Invalid Stop ID passed", err, false)
+		return
+	}
+
+	stopUUID, err := uuid.Parse(stopID)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid stop id", err, false)
+		return
+	}
+
+	stop, err := cfg.db.GetStop(r.Context(), database.GetStopParams{
+		UserID: user.ID,
+		ID:     stopUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to get this stop, it may have been deleted", err, false)
+		return
+	}
+
+	media, err := cfg.db.CreateTripMedia(r.Context(), database.CreateTripMediaParams{
+		TripStopID: uuid.NullUUID{
+			UUID:  stop.ID,
+			Valid: true,
+		},
+		PhotoUrl: sql.NullString{
+			String: photoURL,
+			Valid:  true,
+		},
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Could not create media", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusCreated, ApiResponse{
+		Status: "success",
+		Data: struct {
+			PhotoID  uuid.UUID      `json:"photoID"`
+			PhotoURL sql.NullString `json:"photoURL"`
+		}{
+			PhotoID:  media.ID,
+			PhotoURL: media.PhotoUrl,
+		},
+	})
+
+}
