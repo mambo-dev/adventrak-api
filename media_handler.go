@@ -109,6 +109,9 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
 		return
 	}
+
 	photoURL := fmt.Sprintf("%v/%v", cfg.baseApiUrl, imageFilePath)
 
+	if len(tripID) > 0 {
+	}
 }
