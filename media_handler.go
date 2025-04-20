@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
@@ -60,6 +61,8 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	defer file.Close()
+
 	mediaTypeHeader := fileHeader.Header.Get("Content-Type")
 
 	mediaType, _, err := mime.ParseMediaType(mediaTypeHeader)
@@ -93,9 +96,16 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	fileName := fmt.Sprintf("/%v%v", base64.RawURLEncoding.EncodeToString([]byte(randomNumber)), extensions[0])
+	fileName := fmt.Sprintf("%v%v", base64.RawURLEncoding.EncodeToString([]byte(randomNumber)), extensions[0])
 
 	imageFilePath := filepath.Join(cfg.assetsRoot, fileName)
+
+	imageFilePath = filepath.Clean(imageFilePath)
+
+	if !strings.HasPrefix(imageFilePath, cfg.assetsRoot) {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
 
 	savedFile, err := os.Create(imageFilePath)
 
@@ -103,6 +113,8 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
 		return
 	}
+
+	defer savedFile.Close()
 
 	_, err = io.Copy(savedFile, file)
 
