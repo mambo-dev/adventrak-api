@@ -224,7 +224,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 }
 
-// we need a delete photo upload just get the trip photo id or stop photo id and delete it from the db
-// delete it also from the file system.
+// // we need a delete photo upload just get the trip photo id or stop photo id and delete it from the db
+// // delete it also from the file system.
 
-func (cfg apiConfig) handlerDeletePhotos(w http.ResponseWriter, r *http.Request) {}
+// func (cfg apiConfig) handlerDeletePhotos(w http.ResponseWriter, r *http.Request) {}
