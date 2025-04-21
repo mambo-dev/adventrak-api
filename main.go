@@ -13,6 +13,7 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
+	"github.com/mambo-dev/adventrak-backend/internal/utils"
 )
 
 type apiConfig struct {
@@ -113,7 +114,14 @@ func main() {
 		MaxAge:           300,
 	}))
 
+	assetsHandler := http.StripPrefix("/assets", http.FileServer(http.Dir(assetsRoot)))
 	v1Router := chi.NewRouter()
+
+	err = utils.EnsureAssetsDir(apiCfg.assetsRoot)
+
+	if err != nil {
+		log.Fatalf("Couldn't create assets directory: %v", err)
+	}
 
 	if apiCfg.db != nil {
 		log.Println("Db is active")
@@ -150,6 +158,7 @@ func main() {
 
 	v1Router.Get("/healthz", handlerReadiness)
 
+	router.Handle("/assets/*", assetsHandler)
 	router.Mount("/v1", v1Router)
 
 	srv := &http.Server{
