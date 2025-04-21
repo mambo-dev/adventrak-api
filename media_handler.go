@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -100,10 +101,8 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 	imageFilePath := filepath.Join(cfg.assetsRoot, fileName)
 
-	imageFilePath = filepath.Clean(imageFilePath)
-
-	if !strings.HasPrefix(imageFilePath, cfg.assetsRoot) {
-		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+	if !strings.HasPrefix(imageFilePath, "assets/") {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", errors.New("failed to safely parse the filepath"), false)
 		return
 	}
 
@@ -162,11 +161,11 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 		respondWithJSON(w, http.StatusCreated, ApiResponse{
 			Status: "success",
 			Data: struct {
-				PhotoID  uuid.UUID      `json:"photoID"`
-				PhotoURL sql.NullString `json:"photoURL"`
+				PhotoID  uuid.UUID `json:"photoID"`
+				PhotoURL string    `json:"photoURL"`
 			}{
 				PhotoID:  media.ID,
-				PhotoURL: media.PhotoUrl,
+				PhotoURL: media.PhotoUrl.String,
 			},
 		})
 
@@ -214,12 +213,17 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 	respondWithJSON(w, http.StatusCreated, ApiResponse{
 		Status: "success",
 		Data: struct {
-			PhotoID  uuid.UUID      `json:"photoID"`
-			PhotoURL sql.NullString `json:"photoURL"`
+			PhotoID  uuid.UUID `json:"photoID"`
+			PhotoURL string    `json:"photoURL"`
 		}{
 			PhotoID:  media.ID,
-			PhotoURL: media.PhotoUrl,
+			PhotoURL: media.PhotoUrl.String,
 		},
 	})
 
 }
+
+// we need a delete photo upload just get the trip photo id or stop photo id and delete it from the db
+// delete it also from the file system.
+
+func (cfg apiConfig) handlerDeletePhotos(w http.ResponseWriter, r *http.Request) {}
