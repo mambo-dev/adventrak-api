@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"mime"
 	"net/http"
 	"os"
@@ -102,7 +101,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 	imageFilePath := filepath.Join(cfg.assetsRoot, fileName)
 	imageFilePath = filepath.Clean(imageFilePath)
-	log.Println(imageFilePath)
+
 	if !strings.HasPrefix(imageFilePath, "assets/") {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong", errors.New("failed to safely parse the filepath"), false)
 		return
