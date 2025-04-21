@@ -38,7 +38,7 @@ func DeleteMedia(filepath string) error {
 
 func EnsureAssetsDir(root string) error {
 	if _, err := os.Stat(root); os.IsNotExist(err) {
-		return os.Mkdir(root, 0755)
+		return os.Mkdir(root, 0750)
 	}
 	return nil
 }
