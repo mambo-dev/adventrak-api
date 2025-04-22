@@ -170,6 +170,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 				String: photoURL,
 				Valid:  true,
 			},
+			UserID: user.ID,
 		})
 
 		if err != nil {
@@ -216,6 +217,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 			String: photoURL,
 			Valid:  true,
 		},
+		UserID: user.ID,
 	})
 
 	if err != nil {
@@ -240,7 +242,7 @@ func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) 
 
 	userID := r.Context().Value(UserIDKey).(uuid.UUID)
 
-	_, err = cfg.db.GetUser(r.Context(), database.GetUserParams{
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
 		ID: userID,
 	})
 
@@ -263,14 +265,20 @@ func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	media, err := cfg.db.GetTripMediaById(r.Context(), photoUUID)
+	media, err := cfg.db.GetTripMediaById(r.Context(), database.GetTripMediaByIdParams{
+		ID:     photoUUID,
+		UserID: user.ID,
+	})
 
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Failed to retrieve photo to delete", err, false)
 		return
 	}
 
-	err = cfg.db.DeleteTripMedia(r.Context(), photoUUID)
+	err = cfg.db.DeleteTripMedia(r.Context(), database.DeleteTripMediaParams{
+		ID:     photoUUID,
+		UserID: user.ID,
+	})
 
 	if err != nil {
 		respondWithError(w, http.StatusBadRequest, "Failed to delete this trip's photo", err, false)
@@ -301,7 +309,7 @@ func (cfg apiConfig) handlerGetMedium(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(UserIDKey).(uuid.UUID)
 
-	_, err = cfg.db.GetUser(r.Context(), database.GetUserParams{
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
 		ID: userID,
 	})
 
@@ -324,7 +332,10 @@ func (cfg apiConfig) handlerGetMedium(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	media, err := cfg.db.GetTripMediaById(r.Context(), photoUUID)
+	media, err := cfg.db.GetTripMediaById(r.Context(), database.GetTripMediaByIdParams{
+		ID:     photoUUID,
+		UserID: user.ID,
+	})
 
 	if err != nil {
 		respondWithError(w, http.StatusNotFound, "Failed to retrieve photo to delete", err, false)
@@ -388,6 +399,7 @@ func (cfg apiConfig) handlerGetMedia(w http.ResponseWriter, r *http.Request) {
 				UUID:  trip.ID,
 				Valid: true,
 			},
+			UserID: user.ID,
 		})
 
 		if err != nil {
@@ -436,6 +448,7 @@ func (cfg apiConfig) handlerGetMedia(w http.ResponseWriter, r *http.Request) {
 			UUID:  stop.ID,
 			Valid: true,
 		},
+		UserID: user.ID,
 	})
 
 	if err != nil {

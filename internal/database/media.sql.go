@@ -13,14 +13,15 @@ import (
 )
 
 const createTripMedia = `-- name: CreateTripMedia :one
-INSERT INTO trip_media(trip_id, trip_stop_id, photo_url, video_url)
+INSERT INTO trip_media(trip_id, trip_stop_id, photo_url, video_url, user_id)
 VALUES(
     $1,
     $2,
     $3,
-    $4
+    $4,
+    $5
 )
-RETURNING id, trip_id, trip_stop_id, photo_url, video_url, created_at, updated_at
+RETURNING id, trip_id, trip_stop_id, photo_url, video_url, created_at, updated_at, user_id
 `
 
 type CreateTripMediaParams struct {
@@ -28,6 +29,7 @@ type CreateTripMediaParams struct {
 	TripStopID uuid.NullUUID
 	PhotoUrl   sql.NullString
 	VideoUrl   sql.NullString
+	UserID     uuid.UUID
 }
 
 func (q *Queries) CreateTripMedia(ctx context.Context, arg CreateTripMediaParams) (TripMedium, error) {
@@ -36,6 +38,7 @@ func (q *Queries) CreateTripMedia(ctx context.Context, arg CreateTripMediaParams
 		arg.TripStopID,
 		arg.PhotoUrl,
 		arg.VideoUrl,
+		arg.UserID,
 	)
 	var i TripMedium
 	err := row.Scan(
@@ -46,27 +49,38 @@ func (q *Queries) CreateTripMedia(ctx context.Context, arg CreateTripMediaParams
 		&i.VideoUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const deleteTripMedia = `-- name: DeleteTripMedia :exec
 DELETE FROM trip_media
-WHERE id = $1
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) DeleteTripMedia(ctx context.Context, id uuid.UUID) error {
-	_, err := q.db.ExecContext(ctx, deleteTripMedia, id)
+type DeleteTripMediaParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) DeleteTripMedia(ctx context.Context, arg DeleteTripMediaParams) error {
+	_, err := q.db.ExecContext(ctx, deleteTripMedia, arg.ID, arg.UserID)
 	return err
 }
 
 const getTripMediaById = `-- name: GetTripMediaById :one
-SELECT id, trip_id, trip_stop_id, photo_url, video_url, created_at, updated_at FROM trip_media
-WHERE id = $1
+SELECT id, trip_id, trip_stop_id, photo_url, video_url, created_at, updated_at, user_id FROM trip_media
+WHERE id = $1 AND user_id = $2
 `
 
-func (q *Queries) GetTripMediaById(ctx context.Context, id uuid.UUID) (TripMedium, error) {
-	row := q.db.QueryRowContext(ctx, getTripMediaById, id)
+type GetTripMediaByIdParams struct {
+	ID     uuid.UUID
+	UserID uuid.UUID
+}
+
+func (q *Queries) GetTripMediaById(ctx context.Context, arg GetTripMediaByIdParams) (TripMedium, error) {
+	row := q.db.QueryRowContext(ctx, getTripMediaById, arg.ID, arg.UserID)
 	var i TripMedium
 	err := row.Scan(
 		&i.ID,
@@ -76,22 +90,24 @@ func (q *Queries) GetTripMediaById(ctx context.Context, id uuid.UUID) (TripMediu
 		&i.VideoUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.UserID,
 	)
 	return i, err
 }
 
 const getTripMediaByTripOrStopID = `-- name: GetTripMediaByTripOrStopID :many
-SELECT id, trip_id, trip_stop_id, photo_url, video_url, created_at, updated_at FROM trip_media
-WHERE trip_id = $1 OR trip_stop_id = $2
+SELECT id, trip_id, trip_stop_id, photo_url, video_url, created_at, updated_at, user_id FROM trip_media
+WHERE trip_id = $1 OR trip_stop_id = $2 AND user_id = $3
 `
 
 type GetTripMediaByTripOrStopIDParams struct {
 	TripID     uuid.NullUUID
 	TripStopID uuid.NullUUID
+	UserID     uuid.UUID
 }
 
 func (q *Queries) GetTripMediaByTripOrStopID(ctx context.Context, arg GetTripMediaByTripOrStopIDParams) ([]TripMedium, error) {
-	rows, err := q.db.QueryContext(ctx, getTripMediaByTripOrStopID, arg.TripID, arg.TripStopID)
+	rows, err := q.db.QueryContext(ctx, getTripMediaByTripOrStopID, arg.TripID, arg.TripStopID, arg.UserID)
 	if err != nil {
 		return nil, err
 	}
@@ -107,6 +123,7 @@ func (q *Queries) GetTripMediaByTripOrStopID(ctx context.Context, arg GetTripMed
 			&i.VideoUrl,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.UserID,
 		); err != nil {
 			return nil, err
 		}
@@ -124,7 +141,7 @@ func (q *Queries) GetTripMediaByTripOrStopID(ctx context.Context, arg GetTripMed
 const updateTripMedia = `-- name: UpdateTripMedia :one
 UPDATE trip_media
 SET photo_url = $1, video_url = $2, updated_at = NOW()
-WHERE id = $3
+WHERE id = $3 AND user_id = $4
 RETURNING id
 `
 
@@ -132,10 +149,16 @@ type UpdateTripMediaParams struct {
 	PhotoUrl sql.NullString
 	VideoUrl sql.NullString
 	ID       uuid.UUID
+	UserID   uuid.UUID
 }
 
 func (q *Queries) UpdateTripMedia(ctx context.Context, arg UpdateTripMediaParams) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, updateTripMedia, arg.PhotoUrl, arg.VideoUrl, arg.ID)
+	row := q.db.QueryRowContext(ctx, updateTripMedia,
+		arg.PhotoUrl,
+		arg.VideoUrl,
+		arg.ID,
+		arg.UserID,
+	)
 	var id uuid.UUID
 	err := row.Scan(&id)
 	return id, err
