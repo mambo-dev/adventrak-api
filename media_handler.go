@@ -286,3 +286,57 @@ func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) 
 		Data:   nil,
 	})
 }
+
+func (cfg apiConfig) handlerGetMedium(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	_, err = cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	photoID := chi.URLParam(r, "mediaID")
+
+	if len(photoID) < 1 {
+		respondWithError(w, http.StatusBadRequest, "Invalid  params.", err, false)
+		return
+	}
+
+	photoUUID, err := uuid.Parse(photoID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	media, err := cfg.db.GetTripMediaById(r.Context(), photoUUID)
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to retrieve photo to delete", err, false)
+		return
+	}
+
+	type MediaResponse struct {
+		PhotoID  uuid.UUID `json:"photoID"`
+		PhotoURL string    `json:"photoURL"`
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data: MediaResponse{
+			PhotoID:  media.ID,
+			PhotoURL: media.PhotoUrl.String,
+		},
+	})
+}
