@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"os"
+	"path"
 )
 
 func (cfg apiConfig) resetDatabase(w http.ResponseWriter, r *http.Request) {
@@ -15,8 +16,8 @@ func (cfg apiConfig) resetDatabase(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, dir := range dirs {
-		if err := os.Remove(dir.Name()); err != nil {
-			respondWithError(w, http.StatusNotModified, "Failed to delete user assets and the assets directory.", err, false)
+		if err := os.Remove(path.Join(cfg.assetsRoot, dir.Name())); err != nil {
+			respondWithError(w, http.StatusInternalServerError, "Failed to delete user assets", err, false)
 			return
 		}
 	}
@@ -24,7 +25,7 @@ func (cfg apiConfig) resetDatabase(w http.ResponseWriter, r *http.Request) {
 	err = cfg.db.DeleteUsers(r.Context())
 
 	if err != nil {
-		respondWithError(w, http.StatusNotModified, "Failed to delete all users and their data", err, false)
+		respondWithError(w, http.StatusInternalServerError, "Failed to delete all users and their data", err, false)
 		return
 	}
 
