@@ -22,6 +22,7 @@ WHERE id = $1;
 SELECT * FROM trip_media
 WHERE id = $1;
 
--- name: GetTripMediaByTripId :many
+-- name: GetTripMediaByTripOrStopID :many
 SELECT * FROM trip_media
-WHERE trip_id = $1;
+WHERE trip_id = $1 OR trip_stop_id = $2;
+
