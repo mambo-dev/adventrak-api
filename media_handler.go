@@ -27,6 +27,14 @@ type MediaResponse struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
+func transformMedia(media database.TripMedium) MediaResponse {
+	return MediaResponse{
+		PhotoID:   media.ID,
+		PhotoURL:  media.PhotoUrl.String,
+		CreatedAt: media.CreatedAt,
+	}
+}
+
 func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request) {
 
 	err := rateLimit(w, r, "general")
@@ -171,13 +179,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 		respondWithJSON(w, http.StatusCreated, ApiResponse{
 			Status: "success",
-			Data: struct {
-				PhotoID  uuid.UUID `json:"photoID"`
-				PhotoURL string    `json:"photoURL"`
-			}{
-				PhotoID:  media.ID,
-				PhotoURL: media.PhotoUrl.String,
-			},
+			Data:   transformMedia(media),
 		})
 
 		return
@@ -223,13 +225,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusCreated, ApiResponse{
 		Status: "success",
-		Data: struct {
-			PhotoID  uuid.UUID `json:"photoID"`
-			PhotoURL string    `json:"photoURL"`
-		}{
-			PhotoID:  media.ID,
-			PhotoURL: media.PhotoUrl.String,
-		},
+		Data:   transformMedia(media),
 	})
 
 }
@@ -337,19 +333,8 @@ func (cfg apiConfig) handlerGetMedium(w http.ResponseWriter, r *http.Request) {
 
 	respondWithJSON(w, http.StatusOK, ApiResponse{
 		Status: "success",
-		Data: MediaResponse{
-			PhotoID:  media.ID,
-			PhotoURL: media.PhotoUrl.String,
-		},
+		Data:   transformMedia(media),
 	})
-}
-
-func transformMedia(media database.TripMedium) MediaResponse {
-	return MediaResponse{
-		PhotoID:   media.ID,
-		PhotoURL:  media.PhotoUrl.String,
-		CreatedAt: media.CreatedAt,
-	}
 }
 
 func (cfg apiConfig) handlerGetMedia(w http.ResponseWriter, r *http.Request) {
