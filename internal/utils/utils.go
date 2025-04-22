@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -31,8 +32,17 @@ func FormatPoint(loc Location) string {
 }
 
 func DeleteMedia(filepath string) error {
-	// get the file name from the given path
-	// remove it from the system
+
+	if _, err := os.Stat(filepath); os.IsNotExist(err) {
+		log.Println("File already deleted form os")
+		return nil
+	}
+	err := os.Remove(filepath)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

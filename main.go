@@ -149,6 +149,7 @@ func main() {
 		v1Router.Delete("/stops/{stopID}", apiCfg.UseAuth(apiCfg.handlerDeleteStop))
 
 		v1Router.Post("/media/photos", apiCfg.UseAuth(apiCfg.handlerUploadPhotos))
+		v1Router.Delete("/media/{mediaID}", apiCfg.UseAuth(apiCfg.handlerDeletePhoto))
 
 	}
 

@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
 	"github.com/mambo-dev/adventrak-backend/internal/utils"
@@ -227,4 +228,62 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 // // we need a delete photo upload just get the trip photo id or stop photo id and delete it from the db
 // // delete it also from the file system.
 
-// func (cfg apiConfig) handlerDeletePhotos(w http.ResponseWriter, r *http.Request) {}
+func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	_, err = cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	photoID := chi.URLParam(r, "mediaID")
+
+	if len(photoID) < 1 {
+		respondWithError(w, http.StatusBadRequest, "Invalid  params.", err, false)
+		return
+	}
+
+	photoUUID, err := uuid.Parse(photoID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	media, err := cfg.db.GetTripMediaById(r.Context(), photoUUID)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to retrieve photo to delete", err, false)
+		return
+	}
+
+	err = cfg.db.DeleteTripMedia(r.Context(), photoUUID)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to delete this trip's photo", err, false)
+		return
+	}
+
+	imageFilePath := strings.Split(media.PhotoUrl.String, "/")[1]
+
+	if err = utils.DeleteMedia(imageFilePath); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong.", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
+	})
+}
