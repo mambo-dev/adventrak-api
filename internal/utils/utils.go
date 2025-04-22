@@ -32,11 +32,11 @@ func FormatPoint(loc Location) string {
 }
 
 func DeleteMedia(filepath string) error {
-
 	if _, err := os.Stat(filepath); os.IsNotExist(err) {
 		log.Println("File already deleted form os")
 		return nil
 	}
+
 	err := os.Remove(filepath)
 
 	if err != nil {

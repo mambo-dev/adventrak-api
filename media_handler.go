@@ -9,6 +9,7 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -225,9 +226,6 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 }
 
-// // we need a delete photo upload just get the trip photo id or stop photo id and delete it from the db
-// // delete it also from the file system.
-
 func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) {
 	err := rateLimit(w, r, "general")
 
@@ -264,7 +262,7 @@ func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) 
 	media, err := cfg.db.GetTripMediaById(r.Context(), photoUUID)
 
 	if err != nil {
-		respondWithError(w, http.StatusBadRequest, "Failed to retrieve photo to delete", err, false)
+		respondWithError(w, http.StatusNotFound, "Failed to retrieve photo to delete", err, false)
 		return
 	}
 
@@ -275,7 +273,8 @@ func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	imageFilePath := strings.Split(media.PhotoUrl.String, "/")[1]
+	imageFileName := strings.Split(media.PhotoUrl.String, "assets/")[1]
+	imageFilePath := path.Join(cfg.assetsRoot, imageFileName)
 
 	if err = utils.DeleteMedia(imageFilePath); err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Something went wrong.", err, false)
