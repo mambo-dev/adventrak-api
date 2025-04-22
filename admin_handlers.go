@@ -1,10 +1,18 @@
 package main
 
-import "net/http"
+import (
+	"net/http"
+	"os"
+)
 
 func (cfg apiConfig) resetDatabase(w http.ResponseWriter, r *http.Request) {
 
 	err := cfg.db.DeleteUsers(r.Context())
+
+	if err := os.RemoveAll(cfg.assetsRoot); os.IsNotExist(err) {
+		respondWithError(w, http.StatusNotModified, "Failed to delete user assets and the assets directory.", err, false)
+		return
+	}
 
 	if err != nil {
 		respondWithError(w, http.StatusNotModified, "Failed to delete all users and their data", err, false)
