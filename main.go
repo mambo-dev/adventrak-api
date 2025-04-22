@@ -149,7 +149,10 @@ func main() {
 		v1Router.Delete("/stops/{stopID}", apiCfg.UseAuth(apiCfg.handlerDeleteStop))
 
 		v1Router.Post("/media/photos", apiCfg.UseAuth(apiCfg.handlerUploadPhotos))
-
+		v1Router.Delete("/media/{mediaID}", apiCfg.UseAuth(apiCfg.handlerDeletePhoto))
+		v1Router.Get("/media/{mediaID}", apiCfg.UseAuth(apiCfg.handlerGetMedium))
+		v1Router.Get("/media/{mediaID}", apiCfg.UseAuth(apiCfg.handlerGetMedium))
+		v1Router.Get("/media", apiCfg.UseAuth(apiCfg.handlerGetMedia))
 	}
 
 	if workEnv == "dev" {

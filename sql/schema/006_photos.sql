@@ -9,6 +9,7 @@ CREATE TABLE trip_media(
         video_url VARCHAR ,
         created_at TIMESTAMP NOT NULL DEFAULT NOW(), 
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+
 );
 
 -- +goose Down

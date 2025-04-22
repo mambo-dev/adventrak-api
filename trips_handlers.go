@@ -6,6 +6,8 @@ import (
 	"log"
 	"math"
 	"net/http"
+	"path"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -401,6 +403,30 @@ func (cfg apiConfig) handlerDeleteTrip(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Invalid route path", err, false)
 		return
+	}
+
+	media, err := cfg.db.GetTripMediaByTripOrStopID(r.Context(), database.GetTripMediaByTripOrStopIDParams{
+		TripID: uuid.NullUUID{
+			UUID:  tripUUID,
+			Valid: true,
+		},
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to get trip assets", err, false)
+		return
+	}
+
+	for _, medium := range media {
+		imageFileName := strings.Split(medium.PhotoUrl.String, "assets/")[1]
+		imageFilePath := path.Join(cfg.assetsRoot, imageFileName)
+
+		if err = utils.DeleteMedia(imageFilePath); err != nil {
+			log.Printf("Failed to delete media at %v", imageFilePath)
+			respondWithError(w, http.StatusInternalServerError, "Something went wrong.", err, false)
+			return
+		}
+
 	}
 
 	err = cfg.db.DeleteTrip(r.Context(), database.DeleteTripParams{

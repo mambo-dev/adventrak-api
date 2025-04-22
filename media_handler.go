@@ -9,13 +9,31 @@ import (
 	"mime"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/mambo-dev/adventrak-backend/internal/database"
 	"github.com/mambo-dev/adventrak-backend/internal/utils"
 )
+
+type MediaResponse struct {
+	PhotoID  uuid.UUID `json:"photoID"`
+	PhotoURL string    `json:"photoURL"`
+
+	CreatedAt time.Time `json:"createdAt"`
+}
+
+func transformMedia(media database.TripMedium) MediaResponse {
+	return MediaResponse{
+		PhotoID:   media.ID,
+		PhotoURL:  media.PhotoUrl.String,
+		CreatedAt: media.CreatedAt,
+	}
+}
 
 func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request) {
 
@@ -152,6 +170,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 				String: photoURL,
 				Valid:  true,
 			},
+			UserID: user.ID,
 		})
 
 		if err != nil {
@@ -161,13 +180,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 		respondWithJSON(w, http.StatusCreated, ApiResponse{
 			Status: "success",
-			Data: struct {
-				PhotoID  uuid.UUID `json:"photoID"`
-				PhotoURL string    `json:"photoURL"`
-			}{
-				PhotoID:  media.ID,
-				PhotoURL: media.PhotoUrl.String,
-			},
+			Data:   transformMedia(media),
 		})
 
 		return
@@ -204,6 +217,7 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 			String: photoURL,
 			Valid:  true,
 		},
+		UserID: user.ID,
 	})
 
 	if err != nil {
@@ -213,18 +227,243 @@ func (cfg apiConfig) handlerUploadPhotos(w http.ResponseWriter, r *http.Request)
 
 	respondWithJSON(w, http.StatusCreated, ApiResponse{
 		Status: "success",
-		Data: struct {
-			PhotoID  uuid.UUID `json:"photoID"`
-			PhotoURL string    `json:"photoURL"`
-		}{
-			PhotoID:  media.ID,
-			PhotoURL: media.PhotoUrl.String,
-		},
+		Data:   transformMedia(media),
 	})
 
 }
 
-// // we need a delete photo upload just get the trip photo id or stop photo id and delete it from the db
-// // delete it also from the file system.
+func (cfg apiConfig) handlerDeletePhoto(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
 
-// func (cfg apiConfig) handlerDeletePhotos(w http.ResponseWriter, r *http.Request) {}
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	photoID := chi.URLParam(r, "mediaID")
+
+	if len(photoID) < 1 {
+		respondWithError(w, http.StatusBadRequest, "Invalid  params.", err, false)
+		return
+	}
+
+	photoUUID, err := uuid.Parse(photoID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	media, err := cfg.db.GetTripMediaById(r.Context(), database.GetTripMediaByIdParams{
+		ID:     photoUUID,
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to retrieve photo to delete", err, false)
+		return
+	}
+
+	err = cfg.db.DeleteTripMedia(r.Context(), database.DeleteTripMediaParams{
+		ID:     photoUUID,
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Failed to delete this trip's photo", err, false)
+		return
+	}
+
+	imageFileName := strings.Split(media.PhotoUrl.String, "assets/")[1]
+	imageFilePath := path.Join(cfg.assetsRoot, imageFileName)
+
+	if err = utils.DeleteMedia(imageFilePath); err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong.", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   nil,
+	})
+}
+
+func (cfg apiConfig) handlerGetMedium(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	photoID := chi.URLParam(r, "mediaID")
+
+	if len(photoID) < 1 {
+		respondWithError(w, http.StatusBadRequest, "Invalid  params.", err, false)
+		return
+	}
+
+	photoUUID, err := uuid.Parse(photoID)
+
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Something went wrong", err, false)
+		return
+	}
+
+	media, err := cfg.db.GetTripMediaById(r.Context(), database.GetTripMediaByIdParams{
+		ID:     photoUUID,
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to retrieve photo to delete", err, false)
+		return
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   transformMedia(media),
+	})
+}
+
+func (cfg apiConfig) handlerGetMedia(w http.ResponseWriter, r *http.Request) {
+	err := rateLimit(w, r, "general")
+
+	if err != nil {
+		respondWithError(w, http.StatusForbidden, "Too many requests. Please slow down.", err, false)
+		return
+	}
+
+	userID := r.Context().Value(UserIDKey).(uuid.UUID)
+
+	user, err := cfg.db.GetUser(r.Context(), database.GetUserParams{
+		ID: userID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Unable to find user possibly deleted", err, false)
+		return
+	}
+
+	tripID := r.URL.Query().Get("tripID")
+
+	stopID := r.URL.Query().Get("stopID")
+
+	if len(tripID) > 0 && len(stopID) > 0 {
+		respondWithError(w, http.StatusBadRequest, "Invalid query params use either stop or trip id but not both", err, false)
+		return
+	}
+
+	if len(tripID) > 0 {
+		tripUUID, err := uuid.Parse(tripID)
+
+		if err != nil {
+			respondWithError(w, http.StatusBadRequest, "Invalid trip id", err, false)
+			return
+		}
+
+		trip, err := cfg.db.GetTrip(r.Context(), database.GetTripParams{
+			UserID: user.ID,
+			ID:     tripUUID,
+		})
+
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, "Failed to get this trip, it may have been deleted", err, false)
+			return
+		}
+
+		media, err := cfg.db.GetTripMediaByTripOrStopID(r.Context(), database.GetTripMediaByTripOrStopIDParams{
+			TripID: uuid.NullUUID{
+				UUID:  trip.ID,
+				Valid: true,
+			},
+			UserID: user.ID,
+		})
+
+		if err != nil {
+			respondWithError(w, http.StatusNotFound, "Failed to get this trips medias", err, false)
+			return
+		}
+
+		mediaResponse := make([]MediaResponse, 0, len(media))
+
+		for _, medium := range media {
+			mediaResponse = append(mediaResponse, transformMedia(medium))
+		}
+
+		respondWithJSON(w, http.StatusOK, ApiResponse{
+			Status: "success",
+			Data:   mediaResponse,
+		})
+
+		return
+	}
+
+	if len(stopID) <= 0 {
+		respondWithError(w, http.StatusBadRequest, "Invalid Stop ID passed", err, false)
+		return
+	}
+
+	stopUUID, err := uuid.Parse(stopID)
+
+	if err != nil {
+		respondWithError(w, http.StatusBadRequest, "Invalid stop id", err, false)
+		return
+	}
+
+	stop, err := cfg.db.GetStop(r.Context(), database.GetStopParams{
+		UserID: user.ID,
+		ID:     stopUUID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to get this stop, it may have been deleted", err, false)
+		return
+	}
+
+	media, err := cfg.db.GetTripMediaByTripOrStopID(r.Context(), database.GetTripMediaByTripOrStopIDParams{
+		TripStopID: uuid.NullUUID{
+			UUID:  stop.ID,
+			Valid: true,
+		},
+		UserID: user.ID,
+	})
+
+	if err != nil {
+		respondWithError(w, http.StatusNotFound, "Failed to get this trips medias", err, false)
+		return
+	}
+
+	mediaResponse := make([]MediaResponse, 0, len(media))
+
+	for _, medium := range media {
+		mediaResponse = append(mediaResponse, transformMedia(medium))
+	}
+
+	respondWithJSON(w, http.StatusOK, ApiResponse{
+		Status: "success",
+		Data:   mediaResponse,
+	})
+}
