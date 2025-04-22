@@ -416,7 +416,7 @@ func (cfg apiConfig) handlerGetMedia(w http.ResponseWriter, r *http.Request) {
 			mediaResponse = append(mediaResponse, transformMedia(medium))
 		}
 
-		respondWithJSON(w, http.StatusCreated, ApiResponse{
+		respondWithJSON(w, http.StatusOK, ApiResponse{
 			Status: "success",
 			Data:   mediaResponse,
 		})
@@ -464,7 +464,7 @@ func (cfg apiConfig) handlerGetMedia(w http.ResponseWriter, r *http.Request) {
 		mediaResponse = append(mediaResponse, transformMedia(medium))
 	}
 
-	respondWithJSON(w, http.StatusCreated, ApiResponse{
+	respondWithJSON(w, http.StatusOK, ApiResponse{
 		Status: "success",
 		Data:   mediaResponse,
 	})
