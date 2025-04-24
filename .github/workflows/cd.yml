@@ -24,31 +24,29 @@ jobs:
       - name: Install goose
         run: go install github.com/pressly/goose/v3/cmd/goose@latest
 
-      - name: Build go application
+      - name: Build Go application
         run: ./scripts/buildprod.sh
 
-      - id: "auth"
-        uses: "google-github-actions/auth@v2"
+      - id: auth
+        name: Authenticate with Google Cloud
+        uses: google-github-actions/auth@v2
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
-      - name: "Use gcloud CLI"
-        run: "gcloud info"
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
 
-      - name: "Build gcloud image"
-        run: gcloud builds submit --tag us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest .
-
-      - name: "Set up Cloud SDK"
-        uses: "google-github-actions/setup-gcloud@v2"
-
-      - name: "Start Cloud SQL Proxy"
-        uses: google-github-actions/cloud-sql-proxy@v2
+      - name: Start Cloud SQL Auth Proxy
+        uses: google-github-actions/cloud-sql-proxy@v1
         with:
           instance: adventrak:us-central1:adventrak
-          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
-      - name: "Migrate database"
+      - name: Run DB migrations
         run: ./scripts/migrateup.sh
+
+      - name: Build container image
+        run: gcloud builds submit --tag us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest .
 
       - name: Deploy to Cloud Run
         run: |
@@ -58,4 +56,4 @@ jobs:
             --allow-unauthenticated \
             --project adventrak \
             --max-instances=4 \
-            --set-env-vars "WORKENV=${{secrets.WORKENV}}, DATABASE_URL=${{ secrets.DATABASE_URL }}, JWT_SECRET=${{ secrets.JWT_SECRET }},SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }},BASE_FRONTEND_URL=${{ secrets.BASE_FRONTEND_URL }}, BASE_API_URL=${{secrets.BASE_API_URL}}, ASSETS_ROOT=${{secrets.ASSETS_ROOT}}"
+            --set-env-vars "WORKENV=${{ secrets.WORKENV }},DATABASE_URL=${{ secrets.DATABASE_URL }},JWT_SECRET=${{ secrets.JWT_SECRET }},SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }},BASE_FRONTEND_URL=${{ secrets.BASE_FRONTEND_URL }},BASE_API_URL=${{ secrets.BASE_API_URL }},ASSETS_ROOT=${{ secrets.ASSETS_ROOT }}"
