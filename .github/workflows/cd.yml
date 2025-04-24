@@ -41,6 +41,9 @@ jobs:
       - name: "Build gcloud image"
         run: gcloud builds submit --tag us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest .
 
+      - name: "Migrate database"
+        run: ./scripts/migrateup.sh
+
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy adventrak \
