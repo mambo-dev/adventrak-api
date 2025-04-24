@@ -40,3 +40,13 @@ jobs:
 
       - name: "Build gcloud image"
         run: gcloud builds submit --tag us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest .
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy notely \
+            --image us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --project adventrak \
+            --max-instances=4 \
+            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}, JWT_SECRET=${{ secrets.JWT_SECRET }},SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
