@@ -35,6 +35,12 @@ jobs:
       - name: "Set up Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v2"
 
+      - name: "Start Cloud SQL Proxy"
+        uses: google-github-actions/cloud-sql-proxy@v2
+        with:
+          instance: adventrak:us-central1:adventrak
+          credentials_json: ${{ secrets.GCP_CREDENTIALS }}
+
       - name: "Use gcloud CLI"
         run: "gcloud info"
 
