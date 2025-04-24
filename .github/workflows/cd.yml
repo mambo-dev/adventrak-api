@@ -49,4 +49,4 @@ jobs:
             --allow-unauthenticated \
             --project adventrak \
             --max-instances=4 \
-            --set-env-vars "DATABASE_URL=${{ secrets.DATABASE_URL }}, JWT_SECRET=${{ secrets.JWT_SECRET }},SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
+            --set-env-vars "WORKENV=${{secrets.WORKENV}}, DATABASE_URL=${{ secrets.DATABASE_URL }}, JWT_SECRET=${{ secrets.JWT_SECRET }},SENDGRID_API_KEY=${{ secrets.SENDGRID_API_KEY }},FRONTEND_URL=${{ secrets.FRONTEND_URL }}"
