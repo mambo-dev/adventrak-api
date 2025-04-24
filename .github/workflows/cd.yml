@@ -32,6 +32,12 @@ jobs:
         with:
           credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
 
+      - name: "Use gcloud CLI"
+        run: "gcloud info"
+
+      - name: "Build gcloud image"
+        run: gcloud builds submit --tag us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest .
+
       - name: "Set up Cloud SDK"
         uses: "google-github-actions/setup-gcloud@v2"
 
@@ -40,12 +46,6 @@ jobs:
         with:
           instance: adventrak:us-central1:adventrak
           credentials_json: ${{ secrets.GCP_CREDENTIALS }}
-
-      - name: "Use gcloud CLI"
-        run: "gcloud info"
-
-      - name: "Build gcloud image"
-        run: gcloud builds submit --tag us-central1-docker.pkg.dev/adventrak/adventrak-ar-rep0/adventrak:latest .
 
       - name: "Migrate database"
         run: ./scripts/migrateup.sh
