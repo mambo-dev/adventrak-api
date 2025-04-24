@@ -36,11 +36,12 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      - name: Start Cloud SQL Auth Proxy
-        uses: google-github-actions/cloud-sql-proxy@v1
-        with:
-          instance: adventrak:us-central1:adventrak
-          credentials_json: "${{ secrets.GCP_CREDENTIALS }}"
+      - name: Download and start Cloud SQL Auth Proxy
+        run: |
+          wget https://dl.google.com/cloudsql/cloud_sql_proxy.linux.amd64 -O cloud_sql_proxy
+          chmod +x cloud_sql_proxy
+          ./cloud_sql_proxy -instances=adventrak:us-central1:adventrak=tcp:5432 -credential_file="${{ secrets.GCP_CREDENTIALS }}" &
+          sleep 5
 
       - name: Run DB migrations
         run: ./scripts/migrateup.sh
